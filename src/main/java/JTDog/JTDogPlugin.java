@@ -18,9 +18,9 @@ public class JTDogPlugin implements Plugin<Project> {
         project.getTasks().register("greentest", GreenTest.class , task -> {
             
             task.doFirst(s -> {
-                if(!project.hasProperty("testdirs")){
+                if(!project.hasProperty("JTDog.testDirs")){
                     //final SourceSet test = ((SourceSetContainer) project.getProperties().get("sourceSets")).getByName("test");
-                    throw new GradleException("Set the testdirs property.");
+                    throw new GradleException("Please set the JTDog.testDirs property.");
                 }
                 System.out.println("ok");
             });

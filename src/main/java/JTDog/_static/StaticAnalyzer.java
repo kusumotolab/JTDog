@@ -13,22 +13,32 @@ import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 
 import JTDog._static.method.MethodList;
+import JTDog.fileop.JavaFileReader;
+import JTDog.json.TestSmellList;
+import JTDog.AssertionList;
 import JTDog._static.method.MethodFilter;
 
 public class StaticAnalyzer {
 	// 解析対象のソースコード（複数可）
 	private String[] sources;// = { "src/trial/UserTest.java" };
-	private String[] sourcepathDirs;// = {"src/trial"};
+	private String[] sourceDirs;// = {"src/trial"};
 	private String[] classpaths;// = {"src/trial"};
 
-	public StaticAnalyzer(String[] _testDirs, String[] _sourcepathDirs, String[] _classpaths) {
-		sources = _testDirs;
-		sourcepathDirs = _sourcepathDirs;
+	private AssertionList assertions;
+
+	public StaticAnalyzer(String[] _sources, String[] _sourceDirs, String[] _classpaths) {
+		sources = JavaFileReader.getFilePaths(_sources, "java");
+		sourceDirs = _sourceDirs;
 		classpaths = _classpaths;
+		assertions = new AssertionList();
 	}
 
-    public void analyze() throws IOException {
-
+	/**
+	 * analyze Java unit tests statically.
+	 * @param testSmells	: list to save the analysis results.
+	 * @throws IOException
+	 */
+    public void analyze(TestSmellList testSmells) throws IOException {
 		// 解析器の生成
 		ASTParser parser = ASTParser.newParser(AST.JLS14);
 
@@ -38,15 +48,15 @@ public class StaticAnalyzer {
 		parser.setCompilerOptions(options);
 
 		parser.setResolveBindings(true);
-		parser.setEnvironment(classpaths, sourcepathDirs, null, true);
+		parser.setEnvironment(classpaths, sourceDirs, null, true);
 
-		MyASTRequestor requestor = new MyASTRequestor();
+		TestClassASTRequestor requestor = new TestClassASTRequestor();
 		parser.createASTs(sources, null, new String[] {}, requestor, new NullProgressMonitor());
 
 		// 対象ソースごとにASTの解析を行う
 		for (CompilationUnit unit : requestor.units) {
 			MethodList methodList = new MethodList();
-			MyVisitor visitor = new MyVisitor(methodList, unit);
+			TestClassASTVisitor visitor = new TestClassASTVisitor(methodList, unit, assertions);
 			unit.accept(visitor);
 
 			// テストクラスはこれで取得できる

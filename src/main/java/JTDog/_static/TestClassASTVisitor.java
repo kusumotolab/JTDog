@@ -1,20 +1,19 @@
 package JTDog._static;
 
-import java.io.File;
-import java.io.IOException;
+
 import java.util.ArrayList;
 
-import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.TypeDeclarationStatement;
 
+import JTDog.AssertionList;
 import JTDog._static.method.MethodList;
 import JTDog._static.method.MethodProperty;
 
-public class MyVisitor extends ASTVisitor {
+public class TestClassASTVisitor extends ASTVisitor {
 
 	private MethodList methodList;
 	private CompilationUnit unit;
@@ -22,9 +21,12 @@ public class MyVisitor extends ASTVisitor {
 	private MethodProperty activeMethod; // 訪問中のメソッド呼び出しのスコープ解決用
 	private MethodProperty previousActiveMethod; // ローカルクラス対策
 
-	public MyVisitor(MethodList ml, CompilationUnit cu) {
+	private AssertionList assertions;
+
+	public TestClassASTVisitor(MethodList ml, CompilationUnit cu, AssertionList al) {
 		methodList = ml;
 		unit = cu;
+		assertions = al;
 	}
 
     // TypeDeclarationStatement: クラスの宣言
@@ -46,29 +48,25 @@ public class MyVisitor extends ASTVisitor {
 		System.out.println("MD: "+node.getName());
 		System.out.println("Line: "+ unit.getLineNumber(node.getStartPosition()));
 
+		// コンストラクタを除外
 		if(!node.isConstructor()) {
 			MethodProperty m = new MethodProperty();
 
+			// アノテーションや private などの修飾子のリストを取得
 			ArrayList<String> modifierList = new ArrayList<>();
 			for (Object modifier : node.modifiers()) {
 				modifierList.add(modifier.toString());
-				System.out.println(modifier.toString());
 			}
 
-			boolean hasTestAnnotation = false;
-			if(modifierList.contains("@Test")) {
-				hasTestAnnotation = true;
-			}
+			boolean hasTestAnnotation = modifierList.contains("@Test") ? true :false;
+			// JUnit4 におけるテストメソッドの条件（@Test を除く）
+			boolean isMaybeTestMethod = 
+					(modifierList.contains("public")
+						&& node.getReturnType2().toString().equals("void")
+						&& node.parameters().size() == 0)
+							? true : false;
 
-			boolean isMaybeTestMethod = false;
-			if(modifierList.contains("public")
-					&& node.getReturnType2().toString().equals("void")
-					&& node.parameters().size() == 0) {
-				isMaybeTestMethod = true;
-			}
-
-			System.out.println("bool: "+isMaybeTestMethod);
-
+			// MethodProperty を設定
 			m.setHasAssertionDirectry(false); // この段階では直接アサーションを含むか不明のため
 			m.setHasTestAnnotation(hasTestAnnotation);
 			m.setIsMaybeTestMethod(isMaybeTestMethod);
@@ -78,7 +76,6 @@ public class MyVisitor extends ASTVisitor {
 			activeMethod = m;
 		}
 
-
 		return super.visit(node);
 	}
 
@@ -86,13 +83,10 @@ public class MyVisitor extends ASTVisitor {
 	public boolean visit(MethodInvocation node) {
 		String invokedMethod = node.getName().getIdentifier();
 		activeMethod.addInvocation(invokedMethod);
-
-		// 呼び出し元メソッドが直接アサーションを含む場合
-		// 良くない
-		// assertThat, assertEquals などと一致するかを調べる
-		if(invokedMethod.contains("assert")) {
+		// アサーションであるかどうかの判定
+		if (assertions.isAssertion(invokedMethod)) {
 			activeMethod.setHasAssertionDirectry(true);
-        }
+		}
 
 		return super.visit(node);
 	}

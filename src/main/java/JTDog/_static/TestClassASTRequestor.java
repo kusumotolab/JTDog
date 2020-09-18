@@ -6,11 +6,11 @@ import java.util.List;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.FileASTRequestor;
 
-public class MyASTRequestor extends FileASTRequestor {
+public class TestClassASTRequestor extends FileASTRequestor {
 
 	public List<CompilationUnit> units;
 
-	public MyASTRequestor() {
+	public TestClassASTRequestor() {
 		units = new ArrayList<CompilationUnit>();
 	}
 
