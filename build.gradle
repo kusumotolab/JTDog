@@ -36,22 +36,22 @@ dependencies {
 
     implementation 'org.jacoco:org.jacoco.core:0.8.5'
 }
-
+/* 
 gradlePlugin {
     // Define the plugin
     plugins {
-        greeting {
-            id = 'JTDog.greeting'
+        sniff {
+            id = 'com.github.m-tanigt.java-test-dog'
             implementationClass = 'JTDog.JTDogPlugin'
         }
     }
-}
+}*/
 
 // Add a source set for the functional test suite
-sourceSets {
+/*sourceSets {
     functionalTest {
     }
-}
+}*/
 
 shadowJar{
        exclude "META-INF/*.SF"
