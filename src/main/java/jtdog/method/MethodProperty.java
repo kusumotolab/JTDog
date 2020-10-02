@@ -22,9 +22,11 @@ public class MethodProperty {
     private boolean hasTestAnnotation;
     @JsonIgnore
     private boolean isMaybeTestMethod;
-
+    @JsonIgnore
     private final List<String> invocationList;
-    private Map<String, Integer> invocationToLineNumber;;
+    // ignore してもバグった名前で出力される（ignore がきかない）
+    @JsonProperty
+    private final Map<String, Integer> invocationToLineNumber;
 
     @JsonProperty("test_class")
     private String className;
@@ -81,7 +83,7 @@ public class MethodProperty {
         return invocationList;
     }
 
-    public void addInvocationLineNumber(String invocation, int line) {
+    public void addInvocationLineNumber(final String invocation, final int line) {
         invocationToLineNumber.put(invocation, line);
     }
 
@@ -96,7 +98,7 @@ public class MethodProperty {
         this.testSmellTypes.add(type);
     }
 
-    public void setTestClassName(String name) {
+    public void setTestClassName(final String name) {
         this.className = name;
     }
 
@@ -104,7 +106,7 @@ public class MethodProperty {
         this.name = name;
     }
 
-    public void setSetStartPosition(int number) {
+    public void setSetStartPosition(final int number) {
         this.startPosition = number;
     }
 

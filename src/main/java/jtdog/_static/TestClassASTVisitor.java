@@ -48,11 +48,12 @@ public class TestClassASTVisitor extends ASTVisitor {
     public boolean visit(final TypeDeclaration node) {
         previousActiveMethod = activeMethod;
 
+        String tmp = previousQualifiedClassName;
         previousQualifiedClassName = qualifiedActiveClassName;
         qualifiedActiveClassName = node.resolveBinding().getQualifiedName();
         //
         if (qualifiedActiveClassName.isEmpty()) {
-            qualifiedActiveClassName = previousQualifiedClassName + "$" + node.getName();
+            qualifiedActiveClassName = tmp + "$" + node.getName();
         }
 
         return super.visit(node);
@@ -70,8 +71,9 @@ public class TestClassASTVisitor extends ASTVisitor {
     public boolean visit(final AnonymousClassDeclaration node) {
         previousActiveMethod = activeMethod;
 
+        String tmp = previousQualifiedClassName;
         previousQualifiedClassName = qualifiedActiveClassName;
-        qualifiedActiveClassName = previousQualifiedClassName + "$" + ++anonymousClassNumber;
+        qualifiedActiveClassName = tmp + "$" + ++anonymousClassNumber;
 
         return super.visit(node);
     }
@@ -130,25 +132,30 @@ public class TestClassASTVisitor extends ASTVisitor {
     // メソッド呼び出し
     @Override
     public boolean visit(final MethodInvocation node) {
-        String invokedMethod;
-        final IMethodBinding mb = node.resolveMethodBinding();
-        if (mb == null) {
-            invokedMethod = node.getName().getIdentifier();
-        } else {
-            if (mb.getDeclaringClass() == null) {
+        if (activeMethod != null) {
+            String invokedMethod;
+            final IMethodBinding mb = node.resolveMethodBinding();
+            if (mb == null) {
                 invokedMethod = node.getName().getIdentifier();
             } else {
-                invokedMethod = mb.getDeclaringClass().getQualifiedName() + "." + node.getName().getIdentifier();
+                if (mb.getDeclaringClass() == null) {
+                    invokedMethod = node.getName().getIdentifier();
+                } else {
+                    invokedMethod = mb.getDeclaringClass().getQualifiedName() + "." + node.getName().getIdentifier();
+                }
             }
-        }
-        activeMethod.addInvocation(invokedMethod);
-        activeMethod.addInvocationLineNumber(invokedMethod, unit.getLineNumber(node.getStartPosition()));
 
-        // アサーションであるかどうかの判定
-        if (assertions.isAssertion(invokedMethod)) {
-            activeMethod.setHasAssertionDirectly(true);
-        }
+            System.out.println("invoked: " + invokedMethod);
 
+            activeMethod.addInvocation(invokedMethod);
+            activeMethod.addInvocationLineNumber(invokedMethod, unit.getLineNumber(node.getStartPosition()));
+
+            // アサーションであるかどうかの判定
+            if (assertions.isAssertion(invokedMethod)) {
+                activeMethod.setHasAssertionDirectly(true);
+            }
+
+        }
         return super.visit(node);
     }
 

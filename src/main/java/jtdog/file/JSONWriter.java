@@ -23,6 +23,8 @@ public class JSONWriter {
     public void writeJSONFile(final Object obj, final String dirPath, final String fileName)
             throws JsonGenerationException, JsonMappingException, IOException {
         final ObjectMapper mapper = new ObjectMapper();
+        // JSON 文字列をインデントして見やすくする
+        mapper.enable(SerializationFeature.INDENT_OUTPUT);
         final ObjectWriter writer = mapper.writer(new DefaultPrettyPrinter());
 
         new File(dirPath).mkdirs();

@@ -19,9 +19,9 @@ import jtdog.method.MethodList;
 
 public class StaticAnalyzer {
     // 解析対象のソースコード（複数可）
-    private final String[] sources;// = { "src/trial/UserTest.java" };
-    private final String[] sourceDirs;// = {"src/trial"};
-    private final String[] classpaths;// = {"src/trial"};
+    private final String[] sources;
+    private final String[] sourceDirs;
+    private final String[] classpaths;
 
     private final AssertionList assertions;
 

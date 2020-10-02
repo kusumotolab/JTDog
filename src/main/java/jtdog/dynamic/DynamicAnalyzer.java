@@ -4,6 +4,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.annotation.Annotation;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,6 +19,7 @@ import org.jacoco.core.runtime.LoggerRuntime;
 import org.jacoco.core.runtime.RuntimeData;
 import org.junit.runner.Description;
 import org.junit.runner.JUnitCore;
+import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
 
 import jtdog.method.MethodList;
@@ -51,29 +54,40 @@ public class DynamicAnalyzer {
         for (final String name : testClassNames) {
             // String target = testDirPath + "/" + name;
             System.out.println("name: " + name);
+
             final InputStream original = getTargetClass(name);
-            final byte[] instrumented = jacocoInstrumenter.instrument(original, "");
+            final byte[] instrumented = jacocoInstrumenter.instrument(original, name);
             original.close();
 
             final MemoryClassLoader memoryClassLoader = new MemoryClassLoader();
             memoryClassLoader.addDefinition(name, instrumented);
-            System.out.println("loadClass.");
             final Class<?> targetClass = memoryClassLoader.loadClass(name);
+
             testClasses.add(targetClass);
         }
-
-        System.out.println("JUnitCore.");
 
         final JUnitCore junit = new JUnitCore();
         final RunListener listener = new CoverageMeasurementListener(methodlist);
         junit.addListener(listener);
 
+        // 対象プロジェクト内の依存関係を解決できていないのが原因と考えられる
         junit.run(testClasses.toArray(new Class<?>[testClasses.size()]));
+
+        // なぜか @Test アノテーションが消えてる
+        // Instrumenter が怪しい
+        for (Class<?> class1 : testClasses) {
+            System.out.println("class: " + class1.getCanonicalName());
+            for (Method method : class1.getMethods()) {
+                System.out.println(" -- mathod name: " + method.getName());
+                for (Annotation annotation : method.getAnnotations()) {
+                    System.out.println("    -- annotation name: " + annotation.toString());
+                }
+            }
+        }
     }
 
     private InputStream getTargetClass(final String name) throws FileNotFoundException {
         // final String resource = '/' + name.replace('.', '/') + ".class";
-        // final String resource = name.replace('.', '/') + ".class";
         final String resource = projectDirPath + "/build/classes/java/test/" + name.replace('.', '/') + ".class";
         System.out.println("resource: " + resource);
         // getClass で取得すべきクラスが対象プロジェクトのクラスと考えられる．
@@ -82,8 +96,7 @@ public class DynamicAnalyzer {
         // 一度はコンパイルする必要がある ← class ファイルが欲しいため
         // return getClass().getResourceAsStream(resource);
 
-        // 直接クラスファイルのパスから読み込む方式
-        // うまくいかないっぽい
+        // 直接クラスファイルから読み込む方式
         return new FileInputStream(resource);
     }
 
@@ -97,8 +110,18 @@ public class DynamicAnalyzer {
             this.methodList = methodList;
         }
 
+        // for debug
+        @Override
+        public void testFailure(Failure failure) throws Exception {
+            System.out.println("fail: " + failure.getMessage());
+            // System.out.println("trace: " + failure.getTrace());
+            System.out.println("fail class: " + failure.getDescription().getClassName());
+            super.testFailure(failure);
+        }
+
         @Override
         public void testStarted(final Description description) {
+            System.out.println("start:" + getTestMethodName(description));
             jacocoRuntimeData.reset();
         }
 

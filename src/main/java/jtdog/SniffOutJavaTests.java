@@ -34,6 +34,9 @@ public class SniffOutJavaTests extends DefaultTask {
          * final String[] sourcepathDirs = project.hasProperty("JTDog.sourceDirs") ?
          * project.findProperty("JTDog.sourceDirs").toString().split("\\s+") : null;
          */
+
+        // ユーザーホームの .gradle/caches/module-2 以下から jar ファイルが直下にある
+        // ディレクトリのパスを全部渡す？
         final String[] classpaths = project.hasProperty("JTDog.classpaths")
                 ? project.findProperty("JTDog.classpaths").toString().split("\\s+")
                 : null;
@@ -43,7 +46,10 @@ public class SniffOutJavaTests extends DefaultTask {
         final String[] test = { projectDir + "/src/test" };
         final String[] sources = FileReader.getFilePaths(test, "java");
         // final String[] sources = JavaFileReader.getFilePaths(testDirs, "java");
-        final String[] sourcepathDirs = { projectDir + "/src/main" };
+
+        // java ファイルが直下にあるすべてのディレクトリのパス
+        // or ネストしたディレクトリに対してこのままでもいける？ 要調査
+        final String[] sourcepathDirs = { projectDir + "/src/main/java" };
 
         final MethodList methodList = new MethodList();
 

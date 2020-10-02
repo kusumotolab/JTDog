@@ -3,6 +3,7 @@
  */
 package jtdog;
 
+import org.gradle.StartParameter;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 
@@ -21,7 +22,7 @@ public class JTDogPlugin implements Plugin<Project> {
              * project.getDependencies(); throw new
              * GradleException("Please set the JTDog.testDirs property."); } });
              */
-
+            System.out.println("home: " + StartParameter.DEFAULT_GRADLE_USER_HOME.getPath());
             task.setProject(project);
 
             task.doLast(s -> System.out.println("Done."));

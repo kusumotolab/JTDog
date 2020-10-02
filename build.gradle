@@ -12,6 +12,8 @@ plugins {
      // To make fat jar
     id 'com.github.johnrengelman.shadow' version '5.2.0'
     id 'java'
+
+    id 'maven-publish'
 }
 
 repositories {
@@ -36,16 +38,26 @@ dependencies {
 
     implementation 'org.jacoco:org.jacoco.core:0.8.5'
 }
-/* 
+
+group 'm-tanigt'
+version '0.1'
 gradlePlugin {
     // Define the plugin
     plugins {
-        sniff {
-            id = 'com.github.m-tanigt.java-test-dog'
-            implementationClass = 'JTDog.JTDogPlugin'
+        JTDog {
+            id = 'com.github.m-tanigt.jtdog'
+            implementationClass = 'jtdog.JTDogPlugin'
         }
     }
-}*/
+}
+
+publishing {
+    repositories {
+        maven {
+            url "../../repos/maven-repo"
+        }
+    }
+}
 
 // Add a source set for the functional test suite
 /*sourceSets {
