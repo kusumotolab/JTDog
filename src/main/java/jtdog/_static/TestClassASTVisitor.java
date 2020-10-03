@@ -96,7 +96,7 @@ public class TestClassASTVisitor extends ASTVisitor {
             final String identifier = node.getName().getIdentifier();
             final String methodName = className + "." + identifier;
 
-            System.out.println("MD: " + methodName);
+            // System.out.println("MD: " + methodName);
 
             // アノテーションや private などの修飾子のリストを取得
             final ArrayList<String> modifierList = new ArrayList<>();
@@ -145,7 +145,7 @@ public class TestClassASTVisitor extends ASTVisitor {
                 }
             }
 
-            System.out.println("invoked: " + invokedMethod);
+            // System.out.println("invoked: " + invokedMethod);
 
             activeMethod.addInvocation(invokedMethod);
             activeMethod.addInvocationLineNumber(invokedMethod, unit.getLineNumber(node.getStartPosition()));

@@ -3,7 +3,6 @@
  */
 package jtdog;
 
-import org.gradle.StartParameter;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 
@@ -13,7 +12,7 @@ import org.gradle.api.Project;
 public class JTDogPlugin implements Plugin<Project> {
     public void apply(final Project project) {
         // Register a task
-        project.getTasks().register("sniff", SniffOutJavaTests.class, task -> {
+        project.getTasks().register("sniff", SniffTask.class, task -> {
             /*
              * task.doFirst(s -> { if (!project.hasProperty("JTDog.testDirs")) { //
              * gradle.build に Sourceset がないと意味ない？ // final SourceSet test =
@@ -22,7 +21,7 @@ public class JTDogPlugin implements Plugin<Project> {
              * project.getDependencies(); throw new
              * GradleException("Please set the JTDog.testDirs property."); } });
              */
-            System.out.println("home: " + StartParameter.DEFAULT_GRADLE_USER_HOME.getPath());
+
             task.setProject(project);
 
             task.doLast(s -> System.out.println("Done."));

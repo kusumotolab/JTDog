@@ -1,12 +1,18 @@
 package jtdog.dynamic;
 
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
  * A class loader that loads classes from in-memory data.
  */
-public class MemoryClassLoader extends ClassLoader {
+public class MemoryClassLoader extends URLClassLoader {
+
+    public MemoryClassLoader(URL[] urls, ClassLoader parent) {
+        super(urls, parent);
+    }
 
     private final Map<String, byte[]> definitions = new HashMap<String, byte[]>();
 

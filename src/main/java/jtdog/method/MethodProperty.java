@@ -25,6 +25,7 @@ public class MethodProperty {
     @JsonIgnore
     private final List<String> invocationList;
     // ignore してもバグった名前で出力される（ignore がきかない）
+    // 出力してみたら invocationToLineNumber と invocationToLineNumbaer が一緒に出力された
     @JsonProperty
     private final Map<String, Integer> invocationToLineNumber;
 

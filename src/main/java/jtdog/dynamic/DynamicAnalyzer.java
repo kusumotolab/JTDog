@@ -4,8 +4,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,7 +38,6 @@ public class DynamicAnalyzer {
         this.jacocoRuntimeData = new RuntimeData();
         // this.targetName = UserTest.class.getName();
         try {
-            System.out.println("startup.");
             jacocoRuntime.startup(jacocoRuntimeData);
         } catch (final Exception e) {
             // TODO should be described to log
@@ -48,9 +45,10 @@ public class DynamicAnalyzer {
         }
     }
 
-    public void run(final MethodList methodlist) throws Exception {
+    public void run(final MethodList methodlist, MemoryClassLoader memoryClassLoader) throws Exception {
         System.out.println("run.");
         final List<Class<?>> testClasses = new ArrayList<>();
+
         for (final String name : testClassNames) {
             // String target = testDirPath + "/" + name;
             System.out.println("name: " + name);
@@ -59,7 +57,6 @@ public class DynamicAnalyzer {
             final byte[] instrumented = jacocoInstrumenter.instrument(original, name);
             original.close();
 
-            final MemoryClassLoader memoryClassLoader = new MemoryClassLoader();
             memoryClassLoader.addDefinition(name, instrumented);
             final Class<?> targetClass = memoryClassLoader.loadClass(name);
 
@@ -72,24 +69,14 @@ public class DynamicAnalyzer {
 
         // 対象プロジェクト内の依存関係を解決できていないのが原因と考えられる
         junit.run(testClasses.toArray(new Class<?>[testClasses.size()]));
-
-        // なぜか @Test アノテーションが消えてる
-        // Instrumenter が怪しい
-        for (Class<?> class1 : testClasses) {
-            System.out.println("class: " + class1.getCanonicalName());
-            for (Method method : class1.getMethods()) {
-                System.out.println(" -- mathod name: " + method.getName());
-                for (Annotation annotation : method.getAnnotations()) {
-                    System.out.println("    -- annotation name: " + annotation.toString());
-                }
-            }
-        }
     }
 
     private InputStream getTargetClass(final String name) throws FileNotFoundException {
         // final String resource = '/' + name.replace('.', '/') + ".class";
+
+        // SourceDirectorySet の getDestinationDirectory() 使えるかも
         final String resource = projectDirPath + "/build/classes/java/test/" + name.replace('.', '/') + ".class";
-        System.out.println("resource: " + resource);
+        // System.out.println("resource: " + resource);
         // getClass で取得すべきクラスが対象プロジェクトのクラスと考えられる．
         // ↑ 対象プロジェクトのリソースを検索したいため
         // もう一つの instrument を使う方がいいのか？
