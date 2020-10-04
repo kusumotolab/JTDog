@@ -64,11 +64,3 @@ publishing {
     functionalTest {
     }
 }*/
-
-shadowJar{
-       exclude "META-INF/*.SF"
-       exclude "META-INF/*.DSA"
-       exclude "META-INF/*.RSA"
-       exclude "META-INF/LICENSE"
-       archiveName = "${baseName}.${extension}"
-}

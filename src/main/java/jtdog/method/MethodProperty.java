@@ -88,7 +88,7 @@ public class MethodProperty {
         invocationToLineNumber.put(invocation, line);
     }
 
-    public Map<String, Integer> getInvocationToLineNumbaer() {
+    public Map<String, Integer> getInvocationToLineNumber() {
         return invocationToLineNumber;
     }
 

@@ -46,12 +46,11 @@ public class DynamicAnalyzer {
     }
 
     public void run(final MethodList methodlist, MemoryClassLoader memoryClassLoader) throws Exception {
-        System.out.println("run.");
         final List<Class<?>> testClasses = new ArrayList<>();
 
         for (final String name : testClassNames) {
             // String target = testDirPath + "/" + name;
-            System.out.println("name: " + name);
+            // System.out.println("name: " + name);
 
             final InputStream original = getTargetClass(name);
             final byte[] instrumented = jacocoInstrumenter.instrument(original, name);
@@ -67,6 +66,7 @@ public class DynamicAnalyzer {
         final RunListener listener = new CoverageMeasurementListener(methodlist);
         junit.addListener(listener);
 
+        System.out.println("run.");
         // 対象プロジェクト内の依存関係を解決できていないのが原因と考えられる
         junit.run(testClasses.toArray(new Class<?>[testClasses.size()]));
     }

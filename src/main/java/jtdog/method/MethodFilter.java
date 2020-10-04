@@ -20,6 +20,8 @@ public class MethodFilter {
     }
 
     // methodList から (maybe) bad test を抽出
+    // rotten も合わせて最後に全部検出していくようにしたい（メソッドを順番に結果に出力したいから）
+    // hasAssertionIndirectly を切り分けて先に再帰的に設定するようにすればいい
     public void selectTestSmells() {
         for (final String name : methodList.getMethodNameList()) {
             final MethodProperty mp = methodList.getMethodNameToProperty().get(name);

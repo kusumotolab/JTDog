@@ -42,9 +42,9 @@ public class StaticAnalyzer {
      * @throws IOException
      */
     public void run(final MethodList methodList) throws IOException {
-        for (String string : sources) {
-            System.out.println("sources:" + string);
-        }
+        /*
+         * for (String string : sources) { System.out.println("sources:" + string); }
+         */
         // 解析器の生成
         final ASTParser parser = ASTParser.newParser(AST.JLS14);
 

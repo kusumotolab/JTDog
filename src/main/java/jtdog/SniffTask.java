@@ -51,9 +51,6 @@ public class SniffTask extends DefaultTask {
         // 外部 jar
         final Set<File> externalJarFiles = FileReader.getExternalJarFiles(getProject());
         final String[] classpaths = FileReader.toAbsolutePathArray(externalJarFiles);
-        for (String string : classpaths) {
-            System.out.println("ex jar: " + string);
-        }
 
         final String projectDir = getProject().getProjectDir().getPath();
         final String[] test = { projectDir + "/src/test" };
@@ -72,6 +69,7 @@ public class SniffTask extends DefaultTask {
 
         // 動的解析
         externalJarFiles.add(new File(projectDir + "/build/classes/java/main/"));
+        externalJarFiles.add(new File(projectDir + "/build/classes/java/test/"));
         // URLClassloader を使ってみるための準備
         URL[] urls = FileReader.toURLs(externalJarFiles);
         ClassLoader parent = DynamicAnalyzer.class.getClassLoader();// .getParent();
