@@ -6,10 +6,12 @@ import java.util.Set;
 
 public class AssertionList {
     private final Set<String> assertions;
-    private final Class assertClass;
+    private final Class<?> assertClass;
 
     public AssertionList() {
         assertions = new HashSet<>();
+        // ハードコーディング嫌い
+        // 可変にしたい
         assertClass = org.junit.Assert.class;
         listUpAssertions(assertClass);
     }
@@ -29,9 +31,9 @@ public class AssertionList {
      * 
      * @param c : class to check.
      */
-    private void listUpAssertions(final Class c) {
+    private void listUpAssertions(final Class<?> c) {
         for (final Method method : c.getMethods()) {
-            assertions.add(method.getName());
+            assertions.add(c.getName() + "." + method.getName());
         }
     }
 }

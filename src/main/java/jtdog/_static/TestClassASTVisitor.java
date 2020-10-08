@@ -113,6 +113,7 @@ public class TestClassASTVisitor extends ASTVisitor {
             // MethodProperty を設定
             property.setHasAssertionDirectly(false); // この段階ではアサーションを含むか不明のため
             property.setHasAssertionIndirectly(false); // 同上
+            property.setIsInvoked(false); // 同様の理由
             property.setHasTestAnnotation(hasTestAnnotation);
             property.setIsMaybeTestMethod(isMaybeTestMethod);
 

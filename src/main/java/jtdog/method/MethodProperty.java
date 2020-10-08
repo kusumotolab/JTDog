@@ -23,10 +23,12 @@ public class MethodProperty {
     @JsonIgnore
     private boolean isMaybeTestMethod;
     @JsonIgnore
+    private boolean isInvoked;
+    @JsonIgnore
+    private String color;
+    @JsonIgnore
     private final List<String> invocationList;
-    // ignore してもバグった名前で出力される（ignore がきかない）
-    // 出力してみたら invocationToLineNumber と invocationToLineNumbaer が一緒に出力された
-    @JsonProperty
+    @JsonIgnore
     private final Map<String, Integer> invocationToLineNumber;
 
     @JsonProperty("test_class")
@@ -76,6 +78,14 @@ public class MethodProperty {
         return isMaybeTestMethod;
     }
 
+    public void setIsInvoked(boolean b) {
+        this.isInvoked = b;
+    }
+
+    public boolean getIsInvoked() {
+        return isInvoked;
+    }
+
     public void addInvocation(final String name) {
         this.invocationList.add(name);
     }
@@ -92,6 +102,14 @@ public class MethodProperty {
         return invocationToLineNumber;
     }
 
+    public void setColor(String c) {
+        this.color = c;
+    }
+
+    public String getColor() {
+        return color;
+    }
+
     /*
      * 以下は JSON プロパティ関連
      */
@@ -99,12 +117,24 @@ public class MethodProperty {
         this.testSmellTypes.add(type);
     }
 
+    public List<String> getTestSmellTypes() {
+        return testSmellTypes;
+    }
+
     public void setTestClassName(final String name) {
         this.className = name;
     }
 
+    public String getTestClassName() {
+        return className;
+    }
+
     public void setName(final String name) {
         this.name = name;
+    }
+
+    public String getName() {
+        return name;
     }
 
     public void setSetStartPosition(final int number) {

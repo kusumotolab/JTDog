@@ -63,13 +63,8 @@ public class FileReader {
     public static Set<File> getExternalJarFiles(Project project) {
         Set<File> files = new HashSet<>();
         ConfigurationContainer container = project.getConfigurations();
-        addFilesBySpecifiedConfiguration(files, container, "implementation");
-        addFilesBySpecifiedConfiguration(files, container, "testImplementation");
-
-        // setCanBeResolved を false にすればいける？
-        // そもそも必要があるか調べる必要あり
-        // addFilesBySpecifiedConfiguration(files, container, "compile");
-        // addFilesBySpecifiedConfiguration(files, container, "testCompile");
+        addFilesFromSpecifiedConfiguration(files, container, "testCompileClasspath");
+        addFilesFromSpecifiedConfiguration(files, container, "testRuntimeClasspath");
 
         return files;
     }
@@ -81,13 +76,13 @@ public class FileReader {
      * @param container
      * @param name
      */
-    private static void addFilesBySpecifiedConfiguration(Set<File> files, ConfigurationContainer container,
+    private static void addFilesFromSpecifiedConfiguration(Set<File> files, ConfigurationContainer container,
             String name) {
         Configuration configuration = container.getByName(name);
         if (configuration == null) {
             return;
         }
-        configuration.setCanBeResolved(true);
+        // configuration.setCanBeResolved(true);
         configuration.forEach(file -> {
             files.add(file);
         });

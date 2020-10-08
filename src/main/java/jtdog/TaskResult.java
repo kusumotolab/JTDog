@@ -2,26 +2,23 @@ package jtdog;
 
 import java.util.ArrayList;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jtdog.method.MethodProperty;
 
 public class TaskResult {
-    // @JsonProperty("rotten")
-    @JsonIgnore
+    @JsonProperty("rotten")
     private int numberOfRotten;
-    // @JsonProperty("smoke")
-    @JsonIgnore
+    @JsonProperty("smoke")
     private int numberOfSmoke;
-    // @JsonProperty("assertion_free")
-    @JsonIgnore
+    @JsonProperty("assertion_free")
     private int numberOfAssertionFree;
 
     @JsonProperty("test_smells")
     private ArrayList<MethodProperty> test_smells;
 
     public TaskResult() {
+        this.numberOfRotten = 0;
         this.numberOfSmoke = 0;
         this.numberOfAssertionFree = 0;
     }

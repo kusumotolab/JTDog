@@ -13,17 +13,10 @@ public class JTDogPlugin implements Plugin<Project> {
     public void apply(final Project project) {
         // Register a task
         project.getTasks().register("sniff", SniffTask.class, task -> {
-            /*
-             * task.doFirst(s -> { if (!project.hasProperty("JTDog.testDirs")) { //
-             * gradle.build に Sourceset がないと意味ない？ // final SourceSet test =
-             * ((SourceSetContainer) //
-             * project.getProperties().get("sourceSets")).getByName("test"); // これ使えばいける？ //
-             * project.getDependencies(); throw new
-             * GradleException("Please set the JTDog.testDirs property."); } });
-             */
-
+            task.dependsOn("compileJava");
+            task.dependsOn("compileTestJava");
             task.setProject(project);
-
+            task.setDescription("Detects Java test smells.");
             task.doLast(s -> System.out.println("Done."));
         });
     }

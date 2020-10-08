@@ -20,6 +20,7 @@ import org.junit.runner.JUnitCore;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
 
+import jtdog.AssertionList;
 import jtdog.method.MethodList;
 
 public class DynamicAnalyzer {
@@ -45,9 +46,9 @@ public class DynamicAnalyzer {
         }
     }
 
-    public void run(final MethodList methodlist, MemoryClassLoader memoryClassLoader) throws Exception {
+    public void run(final MethodList methodlist, final AssertionList assertions,
+            final MemoryClassLoader memoryClassLoader) throws Exception {
         final List<Class<?>> testClasses = new ArrayList<>();
-
         for (final String name : testClassNames) {
             // String target = testDirPath + "/" + name;
             // System.out.println("name: " + name);
@@ -58,15 +59,12 @@ public class DynamicAnalyzer {
 
             memoryClassLoader.addDefinition(name, instrumented);
             final Class<?> targetClass = memoryClassLoader.loadClass(name);
-
             testClasses.add(targetClass);
         }
-
         final JUnitCore junit = new JUnitCore();
-        final RunListener listener = new CoverageMeasurementListener(methodlist);
+        final RunListener listener = new CoverageMeasurementListener(methodlist, assertions);
         junit.addListener(listener);
 
-        System.out.println("run.");
         // 対象プロジェクト内の依存関係を解決できていないのが原因と考えられる
         junit.run(testClasses.toArray(new Class<?>[testClasses.size()]));
     }
@@ -92,9 +90,11 @@ public class DynamicAnalyzer {
      */
     class CoverageMeasurementListener extends RunListener {
         private final MethodList methodList;
+        private final AssertionList assertions;
 
-        public CoverageMeasurementListener(final MethodList methodList) {
+        public CoverageMeasurementListener(final MethodList methodList, final AssertionList assertions) {
             this.methodList = methodList;
+            this.assertions = assertions;
         }
 
         // for debug
@@ -108,13 +108,11 @@ public class DynamicAnalyzer {
 
         @Override
         public void testStarted(final Description description) {
-            System.out.println("start:" + getTestMethodName(description));
             jacocoRuntimeData.reset();
         }
 
         @Override
         public void testFinished(final Description description) throws IOException {
-            System.out.println("finish:" + getTestMethodName(description));
             collectRuntimeData(description);
         }
 
@@ -136,7 +134,7 @@ public class DynamicAnalyzer {
          */
         private void collectRuntimeData(final Description description) throws IOException {
             final TestCoverageBuilder coverageBuilder = new TestCoverageBuilder(getTestMethodName(description),
-                    methodList);
+                    methodList, assertions);
             analyzeJacocoRuntimeData(coverageBuilder, description);
         }
 
