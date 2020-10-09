@@ -2,14 +2,12 @@ package jtdog.file;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.gradle.api.Project;
@@ -86,45 +84,6 @@ public class FileReader {
         configuration.forEach(file -> {
             files.add(file);
         });
-    }
-
-    /**
-     * for static analyzer.
-     * 
-     * @param files
-     * @return
-     */
-    public static String[] toAbsolutePathArray(Set<File> files) {
-        ArrayList<String> fileList = new ArrayList<>();
-        for (File file : files) {
-            fileList.add(file.getAbsolutePath());
-        }
-        return fileList.toArray(new String[fileList.size()]);
-    }
-
-    /**
-     * for URLloader
-     * 
-     * @param files
-     * @return
-     */
-    public static URL[] toURLs(Set<File> files) {
-        URL[] urls = files.stream().map(file -> getURL(file)).collect(Collectors.toList()).toArray(new URL[0]);
-        return urls;
-    }
-
-    /**
-     * for toURLs
-     * 
-     * @param file
-     * @return
-     */
-    private static URL getURL(File file) {
-        try {
-            return file.toURI().toURL();
-        } catch (Exception ex) {
-            throw new RuntimeException(ex);
-        }
     }
 
 }

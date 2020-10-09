@@ -51,7 +51,7 @@ public class DynamicAnalyzer {
         final List<Class<?>> testClasses = new ArrayList<>();
         for (final String name : testClassNames) {
             // String target = testDirPath + "/" + name;
-            // System.out.println("name: " + name);
+            System.out.println("name: " + name);
 
             final InputStream original = getTargetClass(name);
             final byte[] instrumented = jacocoInstrumenter.instrument(original, name);

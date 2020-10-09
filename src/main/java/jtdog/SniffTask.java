@@ -16,6 +16,7 @@ import jtdog._static.StaticAnalyzer;
 import jtdog.dynamic.DynamicAnalyzer;
 import jtdog.dynamic.MemoryClassLoader;
 import jtdog.file.FileReader;
+import jtdog.file.FileSetConveter;
 import jtdog.file.JSONWriter;
 import jtdog.method.MethodList;
 import jtdog.method.MethodProperty;
@@ -39,7 +40,7 @@ public class SniffTask extends DefaultTask {
 
         // 外部 jar のパス
         final Set<File> externalJarFiles = FileReader.getExternalJarFiles(getProject());
-        final String[] classpaths = FileReader.toAbsolutePathArray(externalJarFiles);
+        final String[] classpaths = FileSetConveter.toAbsolutePathArray(externalJarFiles);
 
         // 解析するソースコードのパス
         final String projectDir = getProject().getProjectDir().getPath();
@@ -59,7 +60,7 @@ public class SniffTask extends DefaultTask {
         externalJarFiles.add(new File(projectDir + "/build/classes/java/test/"));
 
         // URLClassloader 生成
-        URL[] urls = FileReader.toURLs(externalJarFiles);
+        URL[] urls = FileSetConveter.toURLs(externalJarFiles);
         ClassLoader parent = DynamicAnalyzer.class.getClassLoader();
         final MemoryClassLoader memoryClassLoader = new MemoryClassLoader(urls, parent);
 
