@@ -37,6 +37,8 @@ dependencies {
     implementation group: 'junit', name: 'junit', version: '4.13'
 
     implementation 'org.jacoco:org.jacoco.core:0.8.5'
+
+    implementation 'org.assertj:assertj-core:3.10.0'
 }
 
 group 'm-tanigt'

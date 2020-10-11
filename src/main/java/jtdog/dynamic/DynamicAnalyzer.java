@@ -41,7 +41,6 @@ public class DynamicAnalyzer {
         try {
             jacocoRuntime.startup(jacocoRuntimeData);
         } catch (final Exception e) {
-            // TODO should be described to log
             e.printStackTrace();
         }
     }
@@ -51,7 +50,7 @@ public class DynamicAnalyzer {
         final List<Class<?>> testClasses = new ArrayList<>();
         for (final String name : testClassNames) {
             // String target = testDirPath + "/" + name;
-            System.out.println("name: " + name);
+            // System.out.println("name: " + name);
 
             final InputStream original = getTargetClass(name);
             final byte[] instrumented = jacocoInstrumenter.instrument(original, name);
@@ -70,18 +69,8 @@ public class DynamicAnalyzer {
     }
 
     private InputStream getTargetClass(final String name) throws FileNotFoundException {
-        // final String resource = '/' + name.replace('.', '/') + ".class";
-
-        // SourceDirectorySet の getDestinationDirectory() 使えるかも
         final String resource = projectDirPath + "/build/classes/java/test/" + name.replace('.', '/') + ".class";
-        // System.out.println("resource: " + resource);
-        // getClass で取得すべきクラスが対象プロジェクトのクラスと考えられる．
-        // ↑ 対象プロジェクトのリソースを検索したいため
-        // もう一つの instrument を使う方がいいのか？
-        // 一度はコンパイルする必要がある ← class ファイルが欲しいため
-        // return getClass().getResourceAsStream(resource);
-
-        // 直接クラスファイルから読み込む方式
+        // 直接クラスファイルから読み込む
         return new FileInputStream(resource);
     }
 
@@ -100,14 +89,15 @@ public class DynamicAnalyzer {
         // for debug
         @Override
         public void testFailure(Failure failure) throws Exception {
-            System.out.println("fail: " + failure.getMessage());
+            System.out.println("test fail: " + failure.getMessage());
             // System.out.println("trace: " + failure.getTrace());
-            System.out.println("fail class: " + failure.getDescription().getClassName());
+            System.out.println("test fail class: " + failure.getDescription().getClassName());
             super.testFailure(failure);
         }
 
         @Override
         public void testStarted(final Description description) {
+            System.out.println("start: " + description.getMethodName());
             jacocoRuntimeData.reset();
         }
 

@@ -11,8 +11,8 @@ public class TaskResult {
     private int numberOfRotten;
     @JsonProperty("smoke")
     private int numberOfSmoke;
-    @JsonProperty("assertion_free")
-    private int numberOfAssertionFree;
+    @JsonProperty("annotation_free")
+    private int numberOfAnnotationFree;
 
     @JsonProperty("test_smells")
     private ArrayList<MethodProperty> test_smells;
@@ -20,7 +20,7 @@ public class TaskResult {
     public TaskResult() {
         this.numberOfRotten = 0;
         this.numberOfSmoke = 0;
-        this.numberOfAssertionFree = 0;
+        this.numberOfAnnotationFree = 0;
     }
 
     public void setList(ArrayList<MethodProperty> list) {
@@ -31,8 +31,8 @@ public class TaskResult {
         this.numberOfSmoke = number;
     }
 
-    public void setNumberOfAssertionFree(int number) {
-        this.numberOfAssertionFree = number;
+    public void setNumberOfAnnotationFree(int number) {
+        this.numberOfAnnotationFree = number;
     }
 
     public void setNumberOfRotten(int number) {

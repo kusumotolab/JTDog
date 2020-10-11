@@ -14,6 +14,10 @@ public class MemoryClassLoader extends URLClassLoader {
         super(urls, parent);
     }
 
+    public MemoryClassLoader(URL[] urls) {
+        super(urls);
+    }
+
     private final Map<String, byte[]> definitions = new HashMap<String, byte[]>();
 
     /**
@@ -33,6 +37,40 @@ public class MemoryClassLoader extends URLClassLoader {
             return defineClass(name, bytes, 0, bytes.length);
         }
         return super.loadClass(name, resolve);
+    }
+
+    /**
+     * メモリ上からクラスを探す． <br>
+     * まずURLClassLoaderによるファイルシステム上のクラスのロードを試み，それがなければメモリ上のクラスロードを試す．
+     */
+    @Override
+    protected Class<?> findClass(final String name) throws ClassNotFoundException {
+        Class<?> c = null;
+
+        // try to load from memory
+        final byte[] bytes = definitions.get(name);
+        if (bytes != null) {
+            try {
+                c = defineClass(name, bytes, 0, bytes.length);
+            } catch (final ClassFormatError e) {
+                throw e;
+            }
+        }
+
+        // if fails, try to load from classpath
+        if (null == c) {
+            try {
+                c = super.findClass(name);
+            } catch (final ClassNotFoundException e1) {
+                // ignore
+            }
+        }
+
+        // otherwise, class not found
+        if (null == c) {
+            throw new ClassNotFoundException(name);
+        }
+        return c;
     }
 
 }

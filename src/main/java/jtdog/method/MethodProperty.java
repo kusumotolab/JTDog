@@ -2,8 +2,10 @@ package jtdog.method;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -11,7 +13,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class MethodProperty {
 
     public static final String SMOKE = "smoke";
-    public static final String ASSERTION_FREE = "assertion_free";
+    public static final String ANNOTATION_FREE = "annotation_free";
     public static final String ROTTEN = "rotten";
 
     @JsonIgnore
@@ -28,7 +30,7 @@ public class MethodProperty {
     private String color;
     @JsonIgnore
     private final List<String> invocationList;
-    @JsonIgnore
+    @JsonProperty
     private final Map<String, Integer> invocationToLineNumber;
 
     @JsonProperty("test_class")
@@ -38,12 +40,15 @@ public class MethodProperty {
     @JsonProperty("line")
     private int startPosition;
     @JsonProperty("test_smell_types")
-    private final List<String> testSmellTypes;
+    private final Set<String> testSmellTypes;
+    @JsonProperty("cause_of_smells")
+    private final List<Integer> causeLines;
 
     public MethodProperty() {
         invocationList = new ArrayList<>();
-        testSmellTypes = new ArrayList<>();
+        testSmellTypes = new HashSet<>();
         invocationToLineNumber = new HashMap<>();
+        causeLines = new ArrayList<>();
     }
 
     public void setHasAssertionDirectly(final boolean b) {
@@ -117,7 +122,7 @@ public class MethodProperty {
         this.testSmellTypes.add(type);
     }
 
-    public List<String> getTestSmellTypes() {
+    public Set<String> getTestSmellTypes() {
         return testSmellTypes;
     }
 
@@ -143,6 +148,10 @@ public class MethodProperty {
 
     public int getStartPosition() {
         return startPosition;
+    }
+
+    public void addCauseLine(final int number) {
+        this.causeLines.add(number);
     }
 
 }

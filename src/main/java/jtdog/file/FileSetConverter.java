@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class FileSetConveter {
+public class FileSetConverter {
     /**
      * for static analyzer.
      * 

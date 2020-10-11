@@ -6,14 +6,13 @@ import java.util.Set;
 
 public class AssertionList {
     private final Set<String> assertions;
-    private final Class<?> assertClass;
+    // private final Class<?> assertionClass;
 
-    public AssertionList() {
+    public AssertionList(Class<?> assertionClass) {
         assertions = new HashSet<>();
-        // ハードコーディング嫌い
         // 可変にしたい
-        assertClass = org.junit.Assert.class;
-        listUpAssertions(assertClass);
+        // assertionClass = org.junit.Assert.class;
+        listUpAssertions(assertionClass);
     }
 
     /**

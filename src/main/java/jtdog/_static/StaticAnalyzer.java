@@ -68,16 +68,16 @@ public class StaticAnalyzer {
 
         // 全クラスの AST を走査後，静的解析で検出できる test smell を検出
         // smoke
-        // assertion free
+        // annotation free
         for (final String name : methodList.getMethodNameList()) {
             final MethodProperty mp = methodList.getMethodNameToProperty().get(name);
             final boolean hasAssertionIndirectly = hasAssertionIndirectly(mp, methodList);
             mp.setHasAssertionIndirectly(hasAssertionIndirectly);
 
-            // assertion free test
+            // annotation free test
             if (!mp.getHasTestAnnotation() && mp.getIsMaybeTestMethod() && !mp.getIsInvoked()
                     && (mp.getHasAssertionDirectly() || hasAssertionIndirectly)) {
-                mp.addTestSmellType(MethodProperty.ASSERTION_FREE);
+                mp.addTestSmellType(MethodProperty.ANNOTATION_FREE);
                 continue;
             }
             // smoke test

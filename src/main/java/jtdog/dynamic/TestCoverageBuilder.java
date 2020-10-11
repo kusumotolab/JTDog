@@ -38,6 +38,7 @@ public class TestCoverageBuilder extends CoverageBuilder {
             if (assertions.isAssertion(invocation)) {
                 if (color.equals("red") || color.equals("")) {
                     property.addTestSmellType(MethodProperty.ROTTEN);
+                    property.addCauseLine(line);
                 }
                 continue;
             }
@@ -48,6 +49,7 @@ public class TestCoverageBuilder extends CoverageBuilder {
                     && (mp.getHasAssertionDirectly() || mp.getHasAssertionIndirectly())) {
                 if (color.equals("red") || color.equals("")) {
                     property.addTestSmellType(MethodProperty.ROTTEN);
+                    property.addCauseLine(line);
                 }
             }
         }
