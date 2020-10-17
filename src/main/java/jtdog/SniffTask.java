@@ -12,7 +12,7 @@ import org.gradle.api.tasks.TaskAction;
 
 import jtdog._static.StaticAnalyzer;
 import jtdog.dynamic.DynamicAnalyzer;
-import jtdog.dynamic.SkippingMemoryClassLoader;
+import jtdog.dynamic.MemoryClassLoader;
 import jtdog.file.FileReader;
 import jtdog.file.FileSetConverter;
 import jtdog.file.JSONWriter;
@@ -63,21 +63,9 @@ public class SniffTask extends DefaultTask {
         // URLClassloader 生成
         URL[] urls = FileSetConverter.toURLs(externalJarFiles);
         ClassLoader parent = DynamicAnalyzer.class.getClassLoader();
-        // final MemoryClassLoader memoryClassLoader = new MemoryClassLoader(urls,
-        // parent);
-        final SkippingMemoryClassLoader loader = new SkippingMemoryClassLoader(urls, parent);
+        final MemoryClassLoader loader = new MemoryClassLoader(urls, parent);
         final DynamicAnalyzer da = new DynamicAnalyzer(sa.getTestClasses(), projectDir);
         da.run(methodList, assertions, loader);
-        /*
-         * // リフレクションを使って run メソッド実行 String runnerClassName =
-         * DynamicAnalyzer.class.getName(); Class<?> runnerClass =
-         * loader.loadClass(runnerClassName); Object runner =
-         * runnerClass.getDeclaredConstructor(List.class,
-         * String.class).newInstance(sa.getTestClasses(), projectDir); Method method =
-         * runner.getClass().getMethod("run", MethodList.class, AssertionList.class,
-         * MemoryClassLoader.class); method.invoke(runner, methodList, assertions,
-         * loader);
-         */
 
         // generate result JSON file
         final TaskResult result = new TaskResult();

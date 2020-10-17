@@ -51,6 +51,7 @@ public class TestCoverageBuilder extends CoverageBuilder {
                     property.addTestSmellType(MethodProperty.ROTTEN);
                     property.addCauseLine(line);
                 }
+                /* else で helper の中を見に行くべき */
             }
         }
 

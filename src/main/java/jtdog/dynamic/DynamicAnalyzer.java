@@ -50,7 +50,7 @@ public class DynamicAnalyzer {
         final List<Class<?>> testClasses = new ArrayList<>();
         for (final String name : testClassNames) {
             // String target = testDirPath + "/" + name;
-            // System.out.println("name: " + name);
+            System.out.println("name: " + name);
 
             final InputStream original = getTargetClass(name);
             final byte[] instrumented = jacocoInstrumenter.instrument(original, name);
@@ -90,8 +90,8 @@ public class DynamicAnalyzer {
         @Override
         public void testFailure(Failure failure) throws Exception {
             System.out.println("test fail: " + failure.getMessage());
-            // System.out.println("trace: " + failure.getTrace());
             System.out.println("test fail class: " + failure.getDescription().getClassName());
+            /* テストの実行結果を表すプロパティを MethodProperty オブジェクトに追加し，ここで失敗を設定 */
             super.testFailure(failure);
         }
 
@@ -103,6 +103,7 @@ public class DynamicAnalyzer {
 
         @Override
         public void testFinished(final Description description) throws IOException {
+            System.out.println("finish: " + description.getMethodName());
             collectRuntimeData(description);
         }
 

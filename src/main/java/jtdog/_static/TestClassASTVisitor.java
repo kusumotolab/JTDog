@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
+import org.eclipse.jdt.core.dom.AssertStatement;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
@@ -86,6 +87,8 @@ public class TestClassASTVisitor extends ASTVisitor {
     // メソッド宣言
     @Override
     public boolean visit(final MethodDeclaration node) {
+        // IMethodBinding で管理すればローカル。匿名に対応できそうな気がする
+
         // コンストラクタを除外
         if (!node.isConstructor()) {
             final MethodProperty property = new MethodProperty();
@@ -95,8 +98,6 @@ public class TestClassASTVisitor extends ASTVisitor {
             }
             final String identifier = node.getName().getIdentifier();
             final String methodName = className + "." + identifier;
-
-            // System.out.println("MD: " + methodName);
 
             // アノテーションや private などの修飾子のリストを取得
             final ArrayList<String> modifierList = new ArrayList<>();
@@ -138,11 +139,14 @@ public class TestClassASTVisitor extends ASTVisitor {
             final IMethodBinding mb = node.resolveMethodBinding();
             if (mb == null) {
                 invokedMethod = node.getName().getIdentifier();
+                System.out.println("mb ull: " + invokedMethod);
             } else {
                 if (mb.getDeclaringClass() == null) {
                     invokedMethod = node.getName().getIdentifier();
+                    System.out.println("dec null: " + invokedMethod);
                 } else {
                     invokedMethod = mb.getDeclaringClass().getQualifiedName() + "." + node.getName().getIdentifier();
+                    System.out.println("not null: " + invokedMethod);
                 }
             }
 
@@ -157,6 +161,12 @@ public class TestClassASTVisitor extends ASTVisitor {
             }
 
         }
+        return super.visit(node);
+    }
+
+    @Override
+    public boolean visit(AssertStatement node) {
+        System.out.println("assert: " + node.getMessage());
         return super.visit(node);
     }
 
