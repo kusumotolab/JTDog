@@ -10,10 +10,12 @@ import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 
 import jtdog.AssertionList;
+import jtdog.method.InvocationMethod;
 import jtdog.method.MethodList;
 import jtdog.method.MethodProperty;
 
@@ -47,7 +49,7 @@ public class StaticAnalyzer {
         JavaCore.setComplianceOptions(JavaCore.VERSION_11, options);
         parser.setCompilerOptions(options);
 
-        // for resoleve bindings
+        // for resolve bindings
         parser.setResolveBindings(true);
         parser.setEnvironment(classpaths, sourceDirs, null, true);
 
@@ -69,8 +71,8 @@ public class StaticAnalyzer {
         // 全クラスの AST を走査後，静的解析で検出できる test smell を検出
         // smoke
         // annotation free
-        for (final String name : methodList.getMethodNameList()) {
-            final MethodProperty mp = methodList.getMethodNameToProperty().get(name);
+        for (final IMethodBinding method : methodList.getMethodBindingList()) {
+            final MethodProperty mp = methodList.getPropertyByBinding(method);
             final boolean hasAssertionIndirectly = hasAssertionIndirectly(mp, methodList);
             mp.setHasAssertionIndirectly(hasAssertionIndirectly);
 
@@ -98,14 +100,13 @@ public class StaticAnalyzer {
      */
     private boolean hasAssertionIndirectly(final MethodProperty mp, MethodList methodList) {
         boolean hasAssertion = false;
-        final Map<String, MethodProperty> properties = methodList.getMethodNameToProperty();
-        String methodName = mp.getTestClassName() + "." + mp.getName();
 
-        for (final String name : mp.getInvocationList()) {
+        for (final InvocationMethod invocation : mp.getInvocationList()) {
             MethodProperty tmp;
             // ユーザー定義のメソッドではない
             // あるいは再帰呼び出しを行う場合
-            if ((tmp = properties.get(name)) == null || methodName.equals(name)) {
+            if ((tmp = methodList.getPropertyByBinding(invocation.getBinding())) == null
+                    || mp.getBinding() == invocation) {
                 continue;
             }
 

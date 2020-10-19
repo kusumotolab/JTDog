@@ -4,7 +4,6 @@ import java.util.ArrayList;
 
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
-import org.eclipse.jdt.core.dom.AssertStatement;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
@@ -13,6 +12,7 @@ import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 
 import jtdog.AssertionList;
+import jtdog.method.InvocationMethod;
 import jtdog.method.MethodList;
 import jtdog.method.MethodProperty;
 
@@ -25,12 +25,16 @@ public class TestClassASTVisitor extends ASTVisitor {
     private MethodProperty activeMethod; // 訪問中のメソッド呼び出しのスコープ解決用
     private MethodProperty previousActiveMethod; // ローカルクラス対策
 
+    private MethodProperty activeTopMethod;
+    private MethodProperty previousActiveTopMethod;
+
     private final String testClassName;
 
     private String qualifiedActiveClassName;
     private String previousQualifiedClassName;
 
     private int anonymousClassNumber;
+    private int localClassNumber;
 
     public TestClassASTVisitor(final MethodList methodList, final CompilationUnit unit,
             final AssertionList assertions) {
@@ -38,6 +42,7 @@ public class TestClassASTVisitor extends ASTVisitor {
         this.unit = unit;
         this.assertions = assertions;
         this.anonymousClassNumber = 0;
+        this.localClassNumber = 0;
 
         final TypeDeclaration typeDec = (TypeDeclaration) unit.types().get(0);
         final ITypeBinding bind = typeDec.resolveBinding();
@@ -52,9 +57,15 @@ public class TestClassASTVisitor extends ASTVisitor {
         String tmp = previousQualifiedClassName;
         previousQualifiedClassName = qualifiedActiveClassName;
         qualifiedActiveClassName = node.resolveBinding().getQualifiedName();
-        //
+        // 内部クラスの場合
         if (qualifiedActiveClassName.isEmpty()) {
-            qualifiedActiveClassName = tmp + "$" + node.getName();
+            if (tmp == null) {
+                tmp = previousQualifiedClassName;
+            }
+            qualifiedActiveClassName = tmp + "$" + ++localClassNumber + node.getName();
+        } else {
+            //
+            previousActiveTopMethod = activeTopMethod;
         }
 
         return super.visit(node);
@@ -63,6 +74,9 @@ public class TestClassASTVisitor extends ASTVisitor {
     @Override
     public void endVisit(final TypeDeclaration node) {
         activeMethod = previousActiveMethod;
+        if (!node.resolveBinding().getQualifiedName().isEmpty()) {
+            activeTopMethod = previousActiveTopMethod;
+        }
 
         qualifiedActiveClassName = previousQualifiedClassName;
     }
@@ -71,6 +85,7 @@ public class TestClassASTVisitor extends ASTVisitor {
     @Override
     public boolean visit(final AnonymousClassDeclaration node) {
         previousActiveMethod = activeMethod;
+        previousActiveTopMethod = activeTopMethod;
 
         String tmp = previousQualifiedClassName;
         previousQualifiedClassName = qualifiedActiveClassName;
@@ -82,6 +97,9 @@ public class TestClassASTVisitor extends ASTVisitor {
     @Override
     public void endVisit(final AnonymousClassDeclaration node) {
         activeMethod = previousActiveMethod;
+        activeTopMethod = previousActiveTopMethod;
+
+        qualifiedActiveClassName = previousQualifiedClassName;
     }
 
     // メソッド宣言
@@ -92,9 +110,12 @@ public class TestClassASTVisitor extends ASTVisitor {
         // コンストラクタを除外
         if (!node.isConstructor()) {
             final MethodProperty property = new MethodProperty();
-            String className = node.resolveBinding().getDeclaringClass().getQualifiedName();
+            final IMethodBinding binding = node.resolveBinding();
+            String className = binding.getDeclaringClass().getQualifiedName();
+            boolean isInLocalClass = false;
             if (className.isEmpty()) {
                 className = qualifiedActiveClassName;
+                isInLocalClass = true;
             }
             final String identifier = node.getName().getIdentifier();
             final String methodName = className + "." + identifier;
@@ -117,15 +138,21 @@ public class TestClassASTVisitor extends ASTVisitor {
             property.setIsInvoked(false); // 同様の理由
             property.setHasTestAnnotation(hasTestAnnotation);
             property.setIsMaybeTestMethod(isMaybeTestMethod);
+            property.setBinding(binding);
+            property.setQualifiedName(methodName);
 
             // JSON プロパティ
             property.setName(node.getName().getIdentifier());
             property.setSetStartPosition(unit.getLineNumber(node.getStartPosition()));
             property.setTestClassName(testClassName);
 
-            methodList.addMethodName(methodName);
-            methodList.addMethodProperty(methodName, property);
+            methodList.addMethodBinding(binding);
+            methodList.addMethodProperty(binding, property);
             activeMethod = property;
+            if (!isInLocalClass) {
+                activeTopMethod = property;
+            }
+
         }
 
         return super.visit(node);
@@ -139,21 +166,29 @@ public class TestClassASTVisitor extends ASTVisitor {
             final IMethodBinding mb = node.resolveMethodBinding();
             if (mb == null) {
                 invokedMethod = node.getName().getIdentifier();
-                System.out.println("mb ull: " + invokedMethod);
+                System.out.println("mb null: " + invokedMethod);
             } else {
                 if (mb.getDeclaringClass() == null) {
                     invokedMethod = node.getName().getIdentifier();
                     System.out.println("dec null: " + invokedMethod);
                 } else {
                     invokedMethod = mb.getDeclaringClass().getQualifiedName() + "." + node.getName().getIdentifier();
-                    System.out.println("not null: " + invokedMethod);
+                    System.out.println("not null: " + invokedMethod + ", " + mb.getDeclaringClass().getName());
                 }
             }
 
             // System.out.println("invoked: " + invokedMethod);
+            System.out.println("active: " + activeMethod.getQualifiedName());
 
-            activeMethod.addInvocation(invokedMethod);
-            activeMethod.addInvocationLineNumber(invokedMethod, unit.getLineNumber(node.getStartPosition()));
+            InvocationMethod invocation = new InvocationMethod(mb, unit.getLineNumber(node.getStartPosition()));
+            activeMethod.addInvocation(invocation);
+            // activeMethod.addInvocationLineNumber(mb,
+            // unit.getLineNumber(node.getStartPosition()));
+            if (activeMethod != activeTopMethod) {
+                activeTopMethod.addInvocation(invocation);
+            }
+            // activeTopMethod.addInvocationLineNumber(mb,
+            // unit.getLineNumber(node.getStartPosition()));
 
             // アサーションであるかどうかの判定
             if (assertions.isAssertion(invokedMethod)) {
@@ -161,12 +196,6 @@ public class TestClassASTVisitor extends ASTVisitor {
             }
 
         }
-        return super.visit(node);
-    }
-
-    @Override
-    public boolean visit(AssertStatement node) {
-        System.out.println("assert: " + node.getMessage());
         return super.visit(node);
     }
 

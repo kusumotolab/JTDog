@@ -5,6 +5,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Set;
 
+import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Project;
 import org.gradle.api.tasks.Input;
@@ -76,9 +77,9 @@ public class SniffTask extends DefaultTask {
         int rotten = 0;
         int smoke = 0;
         int annotationFree = 0;
-        // メソッドのリストから test mell を取り出す
-        for (String name : methodList.getMethodNameList()) {
-            MethodProperty property = methodList.getMethodNameToProperty().get(name);
+        // メソッドのリストから test smell を取り出す
+        for (IMethodBinding method : methodList.getMethodBindingList()) {
+            MethodProperty property = methodList.getPropertyByBinding(method);
             Set<String> testSmellTypes = property.getTestSmellTypes();
             if (testSmellTypes.size() != 0) {
                 list.add(property);

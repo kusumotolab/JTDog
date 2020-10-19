@@ -5,30 +5,44 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.jdt.core.dom.IMethodBinding;
+
 public class MethodList {
 
-    private final List<String> methodNameList;
-    private final Map<String, MethodProperty> methodNameToProperty;
+    private final List<IMethodBinding> methodBindingList;
+    private final Map<IMethodBinding, MethodProperty> methodBindingToProperty;
 
     public MethodList() {
-        methodNameList = new ArrayList<>();
-        methodNameToProperty = new HashMap<>();
+        methodBindingList = new ArrayList<>();
+        methodBindingToProperty = new HashMap<>();
     }
 
-    public void addMethodName(final String name) {
-        methodNameList.add(name);
+    public void addMethodBinding(final IMethodBinding binding) {
+        methodBindingList.add(binding);
     }
 
-    public List<String> getMethodNameList() {
-        return methodNameList;
+    public List<IMethodBinding> getMethodBindingList() {
+        return methodBindingList;
     }
 
-    public void addMethodProperty(final String name, final MethodProperty property) {
-        methodNameToProperty.put(name, property);
+    public void addMethodProperty(final IMethodBinding binding, final MethodProperty property) {
+        methodBindingToProperty.put(binding, property);
     }
 
-    public Map<String, MethodProperty> getMethodNameToProperty() {
-        return methodNameToProperty;
+    public MethodProperty getPropertyByBinding(final IMethodBinding binding) {
+        return methodBindingToProperty.get(binding);
+    }
+
+    // オーバーロードを考慮しない
+    // テストメソッドはオーバーロードされないという前提で運用している
+    public MethodProperty getPropertyByName(final String name) {
+        for (IMethodBinding binding : methodBindingList) {
+            MethodProperty property = getPropertyByBinding(binding);
+            if (property.getQualifiedName().equals(name)) {
+                return property;
+            }
+        }
+        return null;
     }
 
 }

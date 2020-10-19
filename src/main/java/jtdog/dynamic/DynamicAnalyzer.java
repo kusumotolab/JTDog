@@ -45,7 +45,8 @@ public class DynamicAnalyzer {
         }
     }
 
-    public void run(final MethodList methodlist, final AssertionList assertions,
+    // テスト以外のクラスも instrumenter を適用すべき？
+    public void run(final MethodList methodList, final AssertionList assertions,
             final MemoryClassLoader memoryClassLoader) throws Exception {
         final List<Class<?>> testClasses = new ArrayList<>();
         for (final String name : testClassNames) {
@@ -61,7 +62,7 @@ public class DynamicAnalyzer {
             testClasses.add(targetClass);
         }
         final JUnitCore junit = new JUnitCore();
-        final RunListener listener = new CoverageMeasurementListener(methodlist, assertions);
+        final RunListener listener = new CoverageMeasurementListener(methodList, assertions);
         junit.addListener(listener);
 
         // 対象プロジェクト内の依存関係を解決できていないのが原因と考えられる
@@ -146,6 +147,8 @@ public class DynamicAnalyzer {
 
             // 一度でもカバレッジ計測されたクラスのみに対してカバレッジ情報を探索
             for (final ExecutionData data : executionData.getContents()) {
+                final String strFqn = data.getName().replace("/", ".");
+                System.out.println("data: " + strFqn + ", " + description.getTestClass().getName());
 
                 // 当該テスト実行でprobeが反応しない＝実行されていない場合はskip
                 if (!data.hasHits()) {

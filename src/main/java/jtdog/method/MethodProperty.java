@@ -1,14 +1,14 @@
 package jtdog.method;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import org.eclipse.jdt.core.dom.IMethodBinding;
 
 public class MethodProperty {
 
@@ -29,9 +29,13 @@ public class MethodProperty {
     @JsonIgnore
     private String color;
     @JsonIgnore
-    private final List<String> invocationList;
-    @JsonProperty
-    private final Map<String, Integer> invocationToLineNumber;
+    private final List<InvocationMethod> invocationList;
+    // @JsonProperty
+    // private final Map<IMethodBinding, Integer> invocationToLineNumber;
+    @JsonIgnore
+    private IMethodBinding binding;
+    @JsonIgnore
+    private String qualifiedName;
 
     @JsonProperty("test_class")
     private String className;
@@ -47,7 +51,7 @@ public class MethodProperty {
     public MethodProperty() {
         invocationList = new ArrayList<>();
         testSmellTypes = new HashSet<>();
-        invocationToLineNumber = new HashMap<>();
+        // invocationToLineNumber = new HashMap<>();
         causeLines = new ArrayList<>();
     }
 
@@ -91,21 +95,20 @@ public class MethodProperty {
         return isInvoked;
     }
 
-    public void addInvocation(final String name) {
-        this.invocationList.add(name);
+    public void addInvocation(final InvocationMethod invocation) {
+        this.invocationList.add(invocation);
     }
 
-    public List<String> getInvocationList() {
+    public List<InvocationMethod> getInvocationList() {
         return invocationList;
     }
-
-    public void addInvocationLineNumber(final String invocation, final int line) {
-        invocationToLineNumber.put(invocation, line);
-    }
-
-    public Map<String, Integer> getInvocationToLineNumber() {
-        return invocationToLineNumber;
-    }
+    /*
+     * public void addInvocationLineNumber(final IMethodBinding invocation, final
+     * int line) { invocationToLineNumber.put(invocation, line); }
+     * 
+     * public Map<IMethodBinding, Integer> getInvocationToLineNumber() { return
+     * invocationToLineNumber; }
+     */
 
     public void setColor(String c) {
         this.color = c;
@@ -113,6 +116,22 @@ public class MethodProperty {
 
     public String getColor() {
         return color;
+    }
+
+    public void setBinding(IMethodBinding binding) {
+        this.binding = binding;
+    }
+
+    public IMethodBinding getBinding() {
+        return binding;
+    }
+
+    public void setQualifiedName(final String name) {
+        this.qualifiedName = name;
+    }
+
+    public String getQualifiedName() {
+        return qualifiedName;
     }
 
     /*
