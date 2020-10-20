@@ -37,7 +37,6 @@ public class DynamicAnalyzer {
         this.jacocoRuntime = new LoggerRuntime();
         this.jacocoInstrumenter = new Instrumenter(jacocoRuntime);
         this.jacocoRuntimeData = new RuntimeData();
-        // this.targetName = UserTest.class.getName();
         try {
             jacocoRuntime.startup(jacocoRuntimeData);
         } catch (final Exception e) {
@@ -48,6 +47,20 @@ public class DynamicAnalyzer {
     // テスト以外のクラスも instrumenter を適用すべき？
     public void run(final MethodList methodList, final AssertionList assertions,
             final MemoryClassLoader memoryClassLoader) throws Exception {
+
+        // FileReader で ${projectdir}/build/classes/java 以下の .class ファイルのパスを取得
+        // それぞれについて instrument
+        String[] root = { projectDirPath + "build/classes/java" };
+        String[] sources = FileReader.getFilePaths(root, "class");
+        for(final String name : sources){
+            // getTargetClass を書き換える必要あり
+            final InputStream original = getTargetClass(name);
+            final byte[] instrumented = jacocoInstrumenter.instrument(original, name);
+            original.close();
+            memoryClassLoader.addDefinition(name, instrumented);
+        }
+
+        // テストクラスのロード
         final List<Class<?>> testClasses = new ArrayList<>();
         for (final String name : testClassNames) {
             // String target = testDirPath + "/" + name;
@@ -56,8 +69,8 @@ public class DynamicAnalyzer {
             final InputStream original = getTargetClass(name);
             final byte[] instrumented = jacocoInstrumenter.instrument(original, name);
             original.close();
-
             memoryClassLoader.addDefinition(name, instrumented);
+
             final Class<?> targetClass = memoryClassLoader.loadClass(name);
             testClasses.add(targetClass);
         }
