@@ -144,13 +144,16 @@ public class TestClassASTVisitor extends ASTVisitor {
             // JSON プロパティ
             property.setName(node.getName().getIdentifier());
             property.setSetStartPosition(unit.getLineNumber(node.getStartPosition()));
-            property.setTestClassName(testClassName);
+            property.setClassName(testClassName);
 
             methodList.addMethodBinding(binding);
             methodList.addMethodProperty(binding, property);
             activeMethod = property;
             if (!isInLocalClass) {
                 activeTopMethod = property;
+                property.setIsDeclaredInLocal(false);
+            } else {
+                property.setIsDeclaredInLocal(true);
             }
 
         }
@@ -193,6 +196,9 @@ public class TestClassASTVisitor extends ASTVisitor {
             // アサーションであるかどうかの判定
             if (assertions.isAssertion(invokedMethod)) {
                 activeMethod.setHasAssertionDirectly(true);
+                if (activeMethod != activeTopMethod) {
+                    activeTopMethod.setHasAssertionDirectly(true);
+                }
             }
 
         }

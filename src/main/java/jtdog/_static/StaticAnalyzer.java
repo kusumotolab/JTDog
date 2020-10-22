@@ -25,6 +25,7 @@ public class StaticAnalyzer {
     private final String[] sourceDirs;
     private final String[] classpaths;
 
+    // Visitor でクラス宣言ごとに追加し，これを基に instrumenter を適用する
     private List<String> testClasses;
 
     public StaticAnalyzer(final String[] _sources, final String[] _sourceDirs, final String[] _classpaths) {
@@ -69,26 +70,7 @@ public class StaticAnalyzer {
         }
 
         // 全クラスの AST を走査後，静的解析で検出できる test smell を検出
-        // smoke
-        // annotation free
-        for (final IMethodBinding method : methodList.getMethodBindingList()) {
-            final MethodProperty mp = methodList.getPropertyByBinding(method);
-            final boolean hasAssertionIndirectly = hasAssertionIndirectly(mp, methodList);
-            mp.setHasAssertionIndirectly(hasAssertionIndirectly);
-
-            // annotation free test
-            if (!mp.getHasTestAnnotation() && mp.getIsMaybeTestMethod() && !mp.getIsInvoked()
-                    && (mp.getHasAssertionDirectly() || hasAssertionIndirectly)) {
-                mp.addTestSmellType(MethodProperty.ANNOTATION_FREE);
-                continue;
-            }
-            // smoke test
-            if (mp.getHasTestAnnotation() && mp.getIsMaybeTestMethod() && !mp.getHasAssertionDirectly()
-                    && !hasAssertionIndirectly) {
-                mp.addTestSmellType(MethodProperty.SMOKE);
-                continue;
-            }
-        }
+        detectTestSmellsStatically(methodList);
     }
 
     /**
@@ -110,7 +92,7 @@ public class StaticAnalyzer {
                 continue;
             }
 
-            if (tmp.getHasAssertionDirectly() || tmp.getHasAssertionIndirectly()) {
+            if (tmp.hasAssertionDirectly() || tmp.hasAssertionIndirectly()) {
                 hasAssertion = true;
                 break;
             } else {
@@ -119,6 +101,37 @@ public class StaticAnalyzer {
         }
 
         return hasAssertion;
+    }
+
+    /**
+     * 静的解析で検出できる test smell を検出する
+     * 
+     * @param methodList
+     */
+    private void detectTestSmellsStatically(MethodList methodList) {
+        for (final IMethodBinding method : methodList.getMethodBindingList()) {
+            final MethodProperty property = methodList.getPropertyByBinding(method);
+            final boolean hasAssertionIndirectly = hasAssertionIndirectly(property, methodList);
+            property.setHasAssertionIndirectly(hasAssertionIndirectly);
+
+            // ローカルクラスや匿名クラスで宣言されたメソッドの場合は絶対にテストメソッドではないのでスキップ
+            if (property.isDeclaredInLocal()) {
+                continue;
+            }
+
+            // annotation free test
+            if (!property.hasTestAnnotation() && property.isMaybeTestMethod() && !property.isInvoked()
+                    && (property.hasAssertionDirectly() || hasAssertionIndirectly)) {
+                property.addTestSmellType(MethodProperty.ANNOTATION_FREE);
+                continue;
+            }
+            // smoke test
+            if (property.hasTestAnnotation() && property.isMaybeTestMethod() && !property.hasAssertionDirectly()
+                    && !hasAssertionIndirectly) {
+                property.addTestSmellType(MethodProperty.SMOKE);
+                continue;
+            }
+        }
     }
 
     public List<String> getTestClasses() {

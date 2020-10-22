@@ -22,7 +22,7 @@ public class FileSetConverter {
     }
 
     /**
-     * for URLloader
+     * for URLClassLoader
      * 
      * @param files
      * @return

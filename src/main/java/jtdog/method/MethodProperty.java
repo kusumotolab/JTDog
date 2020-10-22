@@ -16,26 +16,16 @@ public class MethodProperty {
     public static final String ANNOTATION_FREE = "annotation_free";
     public static final String ROTTEN = "rotten";
 
-    @JsonIgnore
     private boolean hasAssertionDirectly;
-    @JsonIgnore
     private boolean hasAssertionIndirectly;
-    @JsonIgnore
     private boolean hasTestAnnotation;
-    @JsonIgnore
     private boolean isMaybeTestMethod;
-    @JsonIgnore
     private boolean isInvoked;
-    @JsonIgnore
     private String color;
-    @JsonIgnore
     private final List<InvocationMethod> invocationList;
-    // @JsonProperty
-    // private final Map<IMethodBinding, Integer> invocationToLineNumber;
-    @JsonIgnore
     private IMethodBinding binding;
-    @JsonIgnore
     private String qualifiedName;
+    private boolean isDeclaredInLocal;
 
     @JsonProperty("test_class")
     private String className;
@@ -51,126 +41,133 @@ public class MethodProperty {
     public MethodProperty() {
         invocationList = new ArrayList<>();
         testSmellTypes = new HashSet<>();
-        // invocationToLineNumber = new HashMap<>();
         causeLines = new ArrayList<>();
     }
 
-    public void setHasAssertionDirectly(final boolean b) {
-        this.hasAssertionDirectly = b;
-    }
-
-    public boolean getHasAssertionDirectly() {
+    public boolean hasAssertionDirectly() {
         return hasAssertionDirectly;
     }
 
-    public void setHasAssertionIndirectly(final boolean b) {
-        this.hasAssertionIndirectly = b;
+    public void setHasAssertionDirectly(final boolean hasAssertionDirectly) {
+        this.hasAssertionDirectly = hasAssertionDirectly;
     }
 
-    public boolean getHasAssertionIndirectly() {
+    public boolean hasAssertionIndirectly() {
         return hasAssertionIndirectly;
     }
 
-    public void setHasTestAnnotation(final boolean b) {
-        this.hasTestAnnotation = b;
+    public void setHasAssertionIndirectly(final boolean hasAssertionIndirectly) {
+        this.hasAssertionIndirectly = hasAssertionIndirectly;
     }
 
-    public boolean getHasTestAnnotation() {
+    public boolean hasTestAnnotation() {
         return hasTestAnnotation;
     }
 
-    public void setIsMaybeTestMethod(final boolean b) {
-        this.isMaybeTestMethod = b;
+    public void setHasTestAnnotation(final boolean hasTestAnnotation) {
+        this.hasTestAnnotation = hasTestAnnotation;
     }
 
-    public boolean getIsMaybeTestMethod() {
+    @JsonIgnore
+    public boolean isMaybeTestMethod() {
         return isMaybeTestMethod;
     }
 
-    public void setIsInvoked(boolean b) {
-        this.isInvoked = b;
+    public void setIsMaybeTestMethod(final boolean isMaybeTestMethod) {
+        this.isMaybeTestMethod = isMaybeTestMethod;
     }
 
-    public boolean getIsInvoked() {
+    @JsonIgnore
+    public boolean isInvoked() {
         return isInvoked;
+    }
+
+    public void setIsInvoked(boolean isInvoked) {
+        this.isInvoked = isInvoked;
+    }
+
+    @JsonIgnore
+    public List<InvocationMethod> getInvocationList() {
+        return invocationList;
     }
 
     public void addInvocation(final InvocationMethod invocation) {
         this.invocationList.add(invocation);
     }
 
-    public List<InvocationMethod> getInvocationList() {
-        return invocationList;
-    }
-    /*
-     * public void addInvocationLineNumber(final IMethodBinding invocation, final
-     * int line) { invocationToLineNumber.put(invocation, line); }
-     * 
-     * public Map<IMethodBinding, Integer> getInvocationToLineNumber() { return
-     * invocationToLineNumber; }
-     */
-
-    public void setColor(String c) {
-        this.color = c;
-    }
-
+    @JsonIgnore
     public String getColor() {
         return color;
+    }
+
+    public void setColor(String color) {
+        this.color = color;
+    }
+
+    @JsonIgnore
+    public IMethodBinding getBinding() {
+        return binding;
     }
 
     public void setBinding(IMethodBinding binding) {
         this.binding = binding;
     }
 
-    public IMethodBinding getBinding() {
-        return binding;
-    }
-
-    public void setQualifiedName(final String name) {
-        this.qualifiedName = name;
-    }
-
+    @JsonIgnore
     public String getQualifiedName() {
         return qualifiedName;
     }
 
-    /*
-     * 以下は JSON プロパティ関連
-     */
-    public void addTestSmellType(final String type) {
-        this.testSmellTypes.add(type);
+    public void setQualifiedName(final String qualifiedName) {
+        this.qualifiedName = qualifiedName;
     }
+
+    @JsonIgnore
+    public boolean isDeclaredInLocal() {
+        return isDeclaredInLocal;
+    }
+
+    public void setIsDeclaredInLocal(boolean isDeclaredInLocal) {
+        this.isDeclaredInLocal = isDeclaredInLocal;
+    }
+
+    /*
+     * 以下は JSON プロパティ関連メソッド
+     */
 
     public Set<String> getTestSmellTypes() {
         return testSmellTypes;
     }
 
-    public void setTestClassName(final String name) {
-        this.className = name;
+    public void addTestSmellType(final String testSmellType) {
+        this.testSmellTypes.add(testSmellType);
     }
 
-    public String getTestClassName() {
+    public String getClassName() {
         return className;
     }
 
-    public void setName(final String name) {
-        this.name = name;
+    public void setClassName(final String className) {
+        this.className = className;
     }
 
     public String getName() {
         return name;
     }
 
-    public void setSetStartPosition(final int number) {
-        this.startPosition = number;
+    public void setName(final String name) {
+        this.name = name;
     }
 
     public int getStartPosition() {
         return startPosition;
     }
 
+    public void setSetStartPosition(final int number) {
+        this.startPosition = number;
+    }
+
     public void addCauseLine(final int number) {
         this.causeLines.add(number);
     }
-
 }

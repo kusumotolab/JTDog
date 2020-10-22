@@ -59,9 +59,9 @@ public class SniffTask extends DefaultTask {
 
         // 動的解析
         externalJarFiles.add(new File(projectDir + "/build/classes/java/main/"));
-        externalJarFiles.add(new File(projectDir + "/build/classes/java/test/"));
+        // externalJarFiles.add(new File(projectDir + "/build/classes/java/test/"));
 
-        // URLClassloader 生成
+        // URLClassLoader 生成
         URL[] urls = FileSetConverter.toURLs(externalJarFiles);
         ClassLoader parent = DynamicAnalyzer.class.getClassLoader();
         final MemoryClassLoader loader = new MemoryClassLoader(urls, parent);
