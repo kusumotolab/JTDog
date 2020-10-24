@@ -12,6 +12,7 @@ import org.eclipse.jdt.core.dom.IMethodBinding;
 
 public class MethodProperty {
 
+    public static final String IGNORE = "ignore";
     public static final String SMOKE = "smoke";
     public static final String ANNOTATION_FREE = "annotation_free";
     public static final String ROTTEN = "rotten";
@@ -19,12 +20,13 @@ public class MethodProperty {
     private boolean hasAssertionDirectly;
     private boolean hasAssertionIndirectly;
     private boolean hasTestAnnotation;
+    private boolean hasIgnoreAnnotation;
     private boolean isMaybeTestMethod;
     private boolean isInvoked;
     private String color;
     private final List<InvocationMethod> invocationList;
     private IMethodBinding binding;
-    private String qualifiedName;
+    private String binaryName;
     private boolean isDeclaredInLocal;
 
     @JsonProperty("test_class")
@@ -66,6 +68,14 @@ public class MethodProperty {
 
     public void setHasTestAnnotation(final boolean hasTestAnnotation) {
         this.hasTestAnnotation = hasTestAnnotation;
+    }
+
+    public boolean hasIgnoreAnnotation() {
+        return hasIgnoreAnnotation;
+    }
+
+    public void setHasIgnoreAnnotation(final boolean hasIgnoreAnnotation) {
+        this.hasIgnoreAnnotation = hasIgnoreAnnotation;
     }
 
     @JsonIgnore
@@ -114,12 +124,12 @@ public class MethodProperty {
     }
 
     @JsonIgnore
-    public String getQualifiedName() {
-        return qualifiedName;
+    public String getBinaryName() {
+        return binaryName;
     }
 
-    public void setQualifiedName(final String qualifiedName) {
-        this.qualifiedName = qualifiedName;
+    public void setBinaryName(final String binaryName) {
+        this.binaryName = binaryName;
     }
 
     @JsonIgnore

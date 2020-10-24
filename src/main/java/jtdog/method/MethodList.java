@@ -38,7 +38,7 @@ public class MethodList {
     public MethodProperty getPropertyByName(final String name) {
         for (IMethodBinding binding : methodBindingList) {
             MethodProperty property = getPropertyByBinding(binding);
-            if (property.getQualifiedName().equals(name)) {
+            if (property.getBinaryName().equals(name)) {
                 return property;
             }
         }

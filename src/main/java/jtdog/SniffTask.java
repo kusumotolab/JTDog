@@ -41,8 +41,8 @@ public class SniffTask extends DefaultTask {
         final AssertionList assertions = new AssertionList(org.junit.Assert.class);
 
         // 外部 jar のパス
-        final Set<File> externalJarFiles = FileReader.getExternalJarFiles(getProject());
-        final String[] classpaths = FileSetConverter.toAbsolutePathArray(externalJarFiles);
+        final Set<File> classPaths = FileReader.getExternalJarFiles(getProject());
+        final String[] externalJarFilePaths = FileSetConverter.toAbsolutePathArray(classPaths);
 
         // 解析するソースコードのパス
         final String projectDir = getProject().getProjectDir().getPath();
@@ -54,18 +54,19 @@ public class SniffTask extends DefaultTask {
         final String[] sourcepathDirs = { projectDir + "/src/main/java" };
 
         // 静的解析
-        final StaticAnalyzer sa = new StaticAnalyzer(sources, sourcepathDirs, classpaths);
+        final StaticAnalyzer sa = new StaticAnalyzer(sources, sourcepathDirs, externalJarFilePaths);
         sa.run(methodList, assertions);
 
         // 動的解析
-        externalJarFiles.add(new File(projectDir + "/build/classes/java/main/"));
+        // classpath にソースファイルのパスを追加
+        classPaths.add(new File(projectDir + "/build/classes/java/main/"));
         // externalJarFiles.add(new File(projectDir + "/build/classes/java/test/"));
-
         // URLClassLoader 生成
-        URL[] urls = FileSetConverter.toURLs(externalJarFiles);
+        URL[] urls = FileSetConverter.toURLs(classPaths);
         ClassLoader parent = DynamicAnalyzer.class.getClassLoader();
         final MemoryClassLoader loader = new MemoryClassLoader(urls, parent);
-        final DynamicAnalyzer da = new DynamicAnalyzer(sa.getTestClasses(), projectDir);
+        final DynamicAnalyzer da = new DynamicAnalyzer(sa.getTestClassNames(), sa.getTestClassNamesToExecuted(),
+                projectDir);
         da.run(methodList, assertions, loader);
 
         // generate result JSON file

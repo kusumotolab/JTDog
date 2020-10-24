@@ -26,7 +26,6 @@ import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
 
 import jtdog.AssertionList;
-import jtdog.file.FileReader;
 import jtdog.method.InvocationMethod;
 import jtdog.method.MethodList;
 import jtdog.method.MethodProperty;
@@ -37,13 +36,17 @@ public class DynamicAnalyzer {
     private final Instrumenter jacocoInstrumenter;
     private final RuntimeData jacocoRuntimeData;
     private final List<String> testClassNames;
+    private final List<String> testClassNamesToExecuted;
     private final String projectDirPath;
 
     Map<String, String> fqnToPathString;
 
-    public DynamicAnalyzer(final List<String> testClasses, final String projectDirPath) {
-        this.testClassNames = testClasses;
+    public DynamicAnalyzer(final List<String> testClassNames, final List<String> testClassNamesToExecuted,
+            final String projectDirPath) {
+        this.testClassNames = testClassNames;
+        this.testClassNamesToExecuted = testClassNamesToExecuted;
         this.projectDirPath = projectDirPath;
+
         this.jacocoRuntime = new LoggerRuntime();
         this.jacocoInstrumenter = new Instrumenter(jacocoRuntime);
         this.jacocoRuntimeData = new RuntimeData();
@@ -68,34 +71,28 @@ public class DynamicAnalyzer {
         // みたいな感じ
         // /home/tm/RottenGreen/practice/jacoco_junit/build/classes/java/test/ を replace
         // で消す？
-        String[] rootTest = { projectDirPath + "/build/classes/java/test" };
-        String[] sources = FileReader.getFilePaths(rootTest, "class");
-        for (final String name : sources) {
-            String fqn = name.replace(projectDirPath + "/build/classes/java/test/", "").replace(".class", "")
-                    .replace("/", ".");
-            System.out.println("source test: " + fqn);
-            fqnToPathString.put(fqn, name);
-            final InputStream original = new FileInputStream(name);
-            final byte[] instrumented = jacocoInstrumenter.instrument(original, name);
-            original.close();
-            memoryClassLoader.addDefinition(fqn, instrumented);
-        }
-
-        // イラン気がする
         /*
-         * String[] rootMain = { projectDirPath + "/build/classes/java/main" }; String[]
-         * mainSources = FileReader.getFilePaths(rootMain, "class"); for (final String
-         * name : mainSources) { String fqn = name.replace(projectDirPath +
-         * "/build/classes/java/main/", "").replace(".class", "") .replace("/", ".");
-         * System.out.println("source main: " + fqn); fqnToPathString.put(fqn, name);
+         * String[] rootTest = { projectDirPath + "/build/classes/java/test" }; String[]
+         * sources = FileReader.getFilePaths(rootTest, "class"); for (final String name
+         * : sources) { String fqn = name.replace(projectDirPath +
+         * "/build/classes/java/test/", "").replace(".class", "") .replace("/", ".");
+         * System.out.println("source test: " + fqn); fqnToPathString.put(fqn, name);
          * final InputStream original = new FileInputStream(name); final byte[]
          * instrumented = jacocoInstrumenter.instrument(original, name);
          * original.close(); memoryClassLoader.addDefinition(fqn, instrumented); }
          */
 
+        for (String testClassName : testClassNames) {
+            // System.out.println("list: " + testClassName);
+            final InputStream original = getTargetClass(testClassName);
+            final byte[] instrumented = jacocoInstrumenter.instrument(original, testClassName);
+            original.close();
+            memoryClassLoader.addDefinition(testClassName, instrumented);
+        }
+
         // テストクラスのロード
         final List<Class<?>> testClasses = new ArrayList<>();
-        for (final String name : testClassNames) {
+        for (final String name : testClassNamesToExecuted) {
             // String target = testDirPath + "/" + name;
             System.out.println("name: " + name);
 
@@ -112,13 +109,23 @@ public class DynamicAnalyzer {
         final RunListener listener = new CoverageMeasurementListener(methodList, assertions);
         junit.addListener(listener);
 
-        // 対象プロジェクト内の依存関係を解決できていないのが原因と考えられる
         junit.run(testClasses.toArray(new Class<?>[testClasses.size()]));
     }
 
     private InputStream getTargetClass(final String name) throws FileNotFoundException {
+        /*
+         * String subClassName = ""; String className = name; for (String testClassName
+         * : topTestClassNames) { if (name.startsWith(testClassName)) { subClassName =
+         * name.substring(testClassName.length()); className = name.substring(0,
+         * testClassName.length()); } }
+         */
+
+        // final String resource = projectDirPath + "/build/classes/java/test/" +
+        // className.replace('.', '/')
+        // + subClassName.replace(".", "$") + ".class";
         final String resource = projectDirPath + "/build/classes/java/test/" + name.replace('.', '/') + ".class";
         // 直接クラスファイルから読み込む
+        // System.out.println(" resource: " + resource);
         return new FileInputStream(resource);
     }
 
@@ -128,40 +135,47 @@ public class DynamicAnalyzer {
     class CoverageMeasurementListener extends RunListener {
         private final MethodList methodList;
         private final AssertionList assertions;
+        private boolean analyzeRuntimeData;
 
         public CoverageMeasurementListener(final MethodList methodList, final AssertionList assertions) {
             this.methodList = methodList;
             this.assertions = assertions;
+            this.analyzeRuntimeData = true;
         }
 
         @Override
         public void testFailure(Failure failure) throws Exception {
+            // for debug
             System.out.println("test fail: " + failure.getMessage());
             System.out.println("test fail class: " + failure.getDescription().getClassName());
-            /* テストの実行結果を表すプロパティを MethodProperty オブジェクトに追加し，ここで失敗を設定 */
+
+            // test fail = not rotten
+            analyzeRuntimeData = false;
             super.testFailure(failure);
         }
 
         @Override
+        public void testIgnored(Description description) throws Exception {
+            analyzeRuntimeData = false;
+            super.testIgnored(description);
+        }
+
+        @Override
         public void testStarted(final Description description) {
+            // for debug
             System.out.println("start: " + description.getMethodName());
+
             jacocoRuntimeData.reset();
+            analyzeRuntimeData = true;
         }
 
         @Override
         public void testFinished(final Description description) throws IOException {
+            // for debug
             System.out.println("finish: " + description.getMethodName());
-            collectRuntimeData(description);
-        }
-
-        /**
-         * Descriptionから実行したテストメソッドのFQNを取り出す．
-         *
-         * @param description
-         * @return
-         */
-        private String getTestMethodName(final Description description) {
-            return description.getTestClass().getName() + "." + description.getMethodName();
+            if (analyzeRuntimeData) {
+                collectRuntimeData(description);
+            }
         }
 
         /**
@@ -223,16 +237,15 @@ public class DynamicAnalyzer {
 
             // 一度でもカバレッジ計測されたクラスのみに対してカバレッジ情報を探索
             for (final ExecutionData data : executionData.getContents()) {
-                final String qualifiedName = data.getName().replace("/", ".");
-                System.out.println("data: " + qualifiedName + ", " + description.getTestClass().getName());
+                final String binaryName = data.getName().replace("/", ".");
+                System.out.println("data: " + binaryName + ", " + description.getTestClass().getName());
 
                 // 当該テスト実行でprobeが反応しない＝実行されていない場合はskip
                 if (!data.hasHits()) {
                     continue;
                 }
-
-                final InputStream original = new FileInputStream(fqnToPathString.get(qualifiedName));
-                System.out.println("analyze: " + qualifiedName);
+                final InputStream original = getTargetClass(binaryName);
+                System.out.println("analyze: " + binaryName);
                 analyzer.analyzeClass(original, "");
                 original.close();
             }
@@ -251,7 +264,6 @@ public class DynamicAnalyzer {
                 final String testClassName) {
             boolean hasAssertionNotExecuted = false;
 
-            System.out.println("coverage: " + coverage.getName());
             boolean tmp = false;
             if (tmp) {
                 for (int i = coverage.getFirstLine(); i <= coverage.getLastLine(); i++) {
@@ -270,7 +282,7 @@ public class DynamicAnalyzer {
                 // color の判定は red だけで良いはず
                 if (invocationProperty == null) {
                     // 実行されていないアサーションの場合
-                    String className = invocation.getBinding().getDeclaringClass().getQualifiedName();
+                    String className = invocation.getBinding().getDeclaringClass().getBinaryName();
                     String invokedMethodName = invocation.getBinding().getName();
                     if (assertions.isAssertion(className + "." + invokedMethodName)) {
                         if (color.equals("red")) {

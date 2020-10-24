@@ -23,16 +23,18 @@ public class StaticAnalyzer {
     // 解析対象のソースコード（複数可）
     private final String[] sources;
     private final String[] sourceDirs;
-    private final String[] classpaths;
+    private final String[] classPaths;
 
     // Visitor でクラス宣言ごとに追加し，これを基に instrumenter を適用する
-    private List<String> testClasses;
+    private List<String> testClassNames;
+    private List<String> testClassNamesToExecuted;
 
-    public StaticAnalyzer(final String[] _sources, final String[] _sourceDirs, final String[] _classpaths) {
-        this.sources = _sources;
-        this.sourceDirs = _sourceDirs;
-        this.classpaths = _classpaths;
-        this.testClasses = new ArrayList<>();
+    public StaticAnalyzer(final String[] sources, final String[] sourceDirs, final String[] classPaths) {
+        this.sources = sources;
+        this.sourceDirs = sourceDirs;
+        this.classPaths = classPaths;
+        this.testClassNames = new ArrayList<>();
+        this.testClassNamesToExecuted = new ArrayList<>();
     }
 
     /**
@@ -52,7 +54,7 @@ public class StaticAnalyzer {
 
         // for resolve bindings
         parser.setResolveBindings(true);
-        parser.setEnvironment(classpaths, sourceDirs, null, true);
+        parser.setEnvironment(classPaths, sourceDirs, null, true);
 
         final TestClassASTRequestor requestor = new TestClassASTRequestor();
         parser.createASTs(sources, null, new String[] {}, requestor, new NullProgressMonitor());
@@ -61,10 +63,9 @@ public class StaticAnalyzer {
         for (final CompilationUnit unit : requestor.units) {
             final TypeDeclaration typeDec = (TypeDeclaration) unit.types().get(0);
             final ITypeBinding bind = typeDec.resolveBinding();
-            testClasses.add(bind.getQualifiedName());
-            System.out.println("unit: " + bind.getQualifiedName());
+            testClassNamesToExecuted.add(bind.getBinaryName());
 
-            final TestClassASTVisitor visitor = new TestClassASTVisitor(methodList, unit, assertions);
+            final TestClassASTVisitor visitor = new TestClassASTVisitor(methodList, unit, assertions, testClassNames);
             unit.accept(visitor);
 
         }
@@ -115,27 +116,43 @@ public class StaticAnalyzer {
             property.setHasAssertionIndirectly(hasAssertionIndirectly);
 
             // ローカルクラスや匿名クラスで宣言されたメソッドの場合は絶対にテストメソッドではないのでスキップ
-            if (property.isDeclaredInLocal()) {
+            // テストメソッドの条件を満たしていない場合もスキップ
+            if (property.isDeclaredInLocal() || !property.isMaybeTestMethod()) {
+                continue;
+            }
+
+            // ignore test
+            // - has @Ignore
+            if (property.hasIgnoreAnnotation()) {
+                property.addTestSmellType(MethodProperty.IGNORE);
                 continue;
             }
 
             // annotation free test
-            if (!property.hasTestAnnotation() && property.isMaybeTestMethod() && !property.isInvoked()
+            // - do not have @Test
+            // - is not helper
+            // - contains assertion
+            if (!property.hasTestAnnotation() && !property.isInvoked()
                     && (property.hasAssertionDirectly() || hasAssertionIndirectly)) {
                 property.addTestSmellType(MethodProperty.ANNOTATION_FREE);
                 continue;
             }
             // smoke test
-            if (property.hasTestAnnotation() && property.isMaybeTestMethod() && !property.hasAssertionDirectly()
-                    && !hasAssertionIndirectly) {
+            // - has @Test
+            // - contains no assertions
+            if (property.hasTestAnnotation() && !property.hasAssertionDirectly() && !hasAssertionIndirectly) {
                 property.addTestSmellType(MethodProperty.SMOKE);
                 continue;
             }
         }
     }
 
-    public List<String> getTestClasses() {
-        return testClasses;
+    public List<String> getTestClassNames() {
+        return testClassNames;
+    }
+
+    public List<String> getTestClassNamesToExecuted() {
+        return testClassNamesToExecuted;
     }
 
 }
