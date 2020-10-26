@@ -47,7 +47,6 @@ public class StaticAnalyzer {
         // 解析器の生成
         final ASTParser parser = ASTParser.newParser(AST.JLS14);
 
-        // set options to treat assertion as keyword
         final Map<String, String> options = JavaCore.getOptions();
         JavaCore.setComplianceOptions(JavaCore.VERSION_11, options);
         parser.setCompilerOptions(options);
@@ -57,7 +56,9 @@ public class StaticAnalyzer {
 
         final TestClassASTRequestor requestor = new TestClassASTRequestor();
 
-        // ソースが多すぎると heap space error
+        // ソースが多すぎると OutOfMemoryException: heap space
+        // ソース一つ毎に ast を作ると，テストクラス間の依存関係の解決で問題
+        // setEnvironment の sourceDirs にテストのソースも追加する？
         parser.createASTs(sources, null, new String[] {}, requestor, new NullProgressMonitor());
         // 対象ソースごとにASTの解析を行う
         for (final CompilationUnit unit : requestor.units) {

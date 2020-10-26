@@ -14,6 +14,7 @@ public class TestClassASTRequestor extends FileASTRequestor {
         units = new ArrayList<CompilationUnit>();
     }
 
+    @Override
     public void acceptAST(String path, CompilationUnit ast) {
         units.add(ast);
     }
