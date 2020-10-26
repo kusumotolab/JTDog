@@ -33,11 +33,9 @@ public class MemoryClassLoader extends URLClassLoader {
     @Override
     protected Class<?> findClass(final String name) throws ClassNotFoundException {
         Class<?> c = null;
-        System.out.println("find: " + name);
         // try to load from memory
         final byte[] bytes = definitions.get(name);
         if (bytes != null) {
-            System.out.println("   not null");
             try {
                 c = defineClass(name, bytes, 0, bytes.length);
             } catch (final ClassFormatError e) {
@@ -47,7 +45,6 @@ public class MemoryClassLoader extends URLClassLoader {
 
         // if fails, try to load from classpath
         if (null == c) {
-            System.out.println("   classpath");
             try {
                 c = super.findClass(name);
             } catch (final ClassNotFoundException e1) {

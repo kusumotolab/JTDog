@@ -8,7 +8,10 @@ import java.util.Set;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Project;
+import org.gradle.api.plugins.JavaPluginConvention;
 import org.gradle.api.tasks.Input;
+import org.gradle.api.tasks.SourceSet;
+import org.gradle.api.tasks.SourceSetOutput;
 import org.gradle.api.tasks.TaskAction;
 
 import jtdog._static.StaticAnalyzer;
@@ -33,25 +36,46 @@ public class SniffTask extends DefaultTask {
     }
 
     @TaskAction
-    void analyzeJavaTests() throws Exception {
+    void sniffTaskAction() throws Exception {
+        Set<Project> subProjects = getProject().getSubprojects();
+        if (subProjects.isEmpty()) {
+            analyzeJavaTests(getProject());
+        } else {
+            for (Project subProject : subProjects) {
+                analyzeJavaTests(subProject);
+            }
+        }
+    }
+
+    void analyzeJavaTests(Project project) throws Exception {
         final MethodList methodList = new MethodList();
+
+        SourceSet mainSourceSet = project.getConvention().getPlugin(JavaPluginConvention.class).getSourceSets()
+                .getByName("main");
+        SourceSet testSourceSet = project.getConvention().getPlugin(JavaPluginConvention.class).getSourceSets()
+                .getByName("test");
+
         // ここどうにかしたい
         // final AssertionList assertions = new
         // AssertionList(org.assertj.core.api.Assertions.class);
         final AssertionList assertions = new AssertionList(org.junit.Assert.class);
 
         // 外部 jar のパス
-        final Set<File> classPaths = FileReader.getExternalJarFiles(getProject());
+        final Set<File> classPaths = FileReader.getExternalJarFiles(project);
         final String[] externalJarFilePaths = FileSetConverter.toAbsolutePathArray(classPaths);
 
         // 解析するソースコードのパス
-        final String projectDir = getProject().getProjectDir().getPath();
-        final String[] test = { projectDir + "/src/test" };
-        final String[] sources = FileReader.getFilePaths(test, "java");
+        // final String projectDir = getProject().getProjectDir().getPath();
+        // final String[] test = { projectDir + "/src/test" };
+        // final String[] sources = FileReader.getFilePaths(test, "java");
+        final Set<File> testSourceFiles = testSourceSet.getJava().getFiles();
+        final String[] sources = FileSetConverter.toAbsolutePathArray(testSourceFiles);
 
         // java ファイルが直下にあるすべてのディレクトリのパス
-        // or ネストしたディレクトリに対してこのままでもいける？ 要調査
-        final String[] sourcepathDirs = { projectDir + "/src/main/java" };
+        // sourceSets.main.java.srcDirs から取るべき
+        // sourceSets.test.output.classesDirs のようにクラスファイルも同様
+        // final String[] sourcepathDirs = { projectDir + "/src/main/java" };
+        final String[] sourcepathDirs = FileSetConverter.toAbsolutePathArray(mainSourceSet.getJava().getSrcDirs());
 
         // 静的解析
         final StaticAnalyzer sa = new StaticAnalyzer(sources, sourcepathDirs, externalJarFilePaths);
@@ -59,14 +83,36 @@ public class SniffTask extends DefaultTask {
 
         // 動的解析
         // classpath にソースファイルのパスを追加
-        classPaths.add(new File(projectDir + "/build/classes/java/main/"));
-        // externalJarFiles.add(new File(projectDir + "/build/classes/java/test/"));
+        SourceSetOutput mainOutput = mainSourceSet.getOutput();
+        Set<File> mainClassesDirs = mainOutput.getClassesDirs().getFiles();
+
+        for (File dir : mainClassesDirs) {
+            classPaths.add(new File(dir.getAbsolutePath()));
+        }
+
+        // classPaths.add(new File(projectDir + "/build/classes/java/main/"));
+
         // URLClassLoader 生成
         URL[] urls = FileSetConverter.toURLs(classPaths);
         ClassLoader parent = DynamicAnalyzer.class.getClassLoader();
         final MemoryClassLoader loader = new MemoryClassLoader(urls, parent);
+        // final DynamicAnalyzer da = new DynamicAnalyzer(sa.getTestClassNames(),
+        // sa.getTestClassNamesToExecuted(),
+        // projectDir);
+
+        String testClassesDirPath = "";
+        SourceSetOutput testOutput = testSourceSet.getOutput();
+        Set<File> testClassesDirs = testOutput.getClassesDirs().getFiles();
+        if (testClassesDirs.size() == 1) {
+            for (File dir : testClassesDirs) {
+                testClassesDirPath = dir.getAbsolutePath();
+            }
+        } else {
+            throw new Exception();
+        }
         final DynamicAnalyzer da = new DynamicAnalyzer(sa.getTestClassNames(), sa.getTestClassNamesToExecuted(),
-                projectDir);
+                testClassesDirPath);
+
         da.run(methodList, assertions, loader);
 
         // generate result JSON file

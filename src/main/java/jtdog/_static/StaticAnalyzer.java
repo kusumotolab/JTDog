@@ -51,14 +51,14 @@ public class StaticAnalyzer {
         final Map<String, String> options = JavaCore.getOptions();
         JavaCore.setComplianceOptions(JavaCore.VERSION_11, options);
         parser.setCompilerOptions(options);
-
         // for resolve bindings
         parser.setResolveBindings(true);
         parser.setEnvironment(classPaths, sourceDirs, null, true);
 
         final TestClassASTRequestor requestor = new TestClassASTRequestor();
-        parser.createASTs(sources, null, new String[] {}, requestor, new NullProgressMonitor());
 
+        // ソースが多すぎると heap space error
+        parser.createASTs(sources, null, new String[] {}, requestor, new NullProgressMonitor());
         // 対象ソースごとにASTの解析を行う
         for (final CompilationUnit unit : requestor.units) {
             final TypeDeclaration typeDec = (TypeDeclaration) unit.types().get(0);

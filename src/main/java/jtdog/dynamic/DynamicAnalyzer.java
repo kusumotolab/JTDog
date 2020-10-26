@@ -37,15 +37,15 @@ public class DynamicAnalyzer {
     private final RuntimeData jacocoRuntimeData;
     private final List<String> testClassNames;
     private final List<String> testClassNamesToExecuted;
-    private final String projectDirPath;
+    private final String testClassesDirPath;
 
     Map<String, String> fqnToPathString;
 
     public DynamicAnalyzer(final List<String> testClassNames, final List<String> testClassNamesToExecuted,
-            final String projectDirPath) {
+            final String testClassesDirPath) {
         this.testClassNames = testClassNames;
         this.testClassNamesToExecuted = testClassNamesToExecuted;
-        this.projectDirPath = projectDirPath;
+        this.testClassesDirPath = testClassesDirPath;
 
         this.jacocoRuntime = new LoggerRuntime();
         this.jacocoInstrumenter = new Instrumenter(jacocoRuntime);
@@ -123,7 +123,9 @@ public class DynamicAnalyzer {
         // final String resource = projectDirPath + "/build/classes/java/test/" +
         // className.replace('.', '/')
         // + subClassName.replace(".", "$") + ".class";
-        final String resource = projectDirPath + "/build/classes/java/test/" + name.replace('.', '/') + ".class";
+        // final String resource = testClassesDirPath + "/build/classes/java/test/" +
+        // name.replace('.', '/') + ".class";
+        final String resource = testClassesDirPath + "/" + name.replace('.', '/') + ".class";
         // 直接クラスファイルから読み込む
         // System.out.println(" resource: " + resource);
         return new FileInputStream(resource);
@@ -284,13 +286,17 @@ public class DynamicAnalyzer {
                     // 実行されていないアサーションの場合
                     String className = invocation.getBinding().getDeclaringClass().getBinaryName();
                     String invokedMethodName = invocation.getBinding().getName();
-                    if (assertions.isAssertion(className + "." + invokedMethodName)) {
+                    if (className.contains("Assert")) {
                         if (color.equals("red")) {
                             causeLines.add(line);
                             hasAssertionNotExecuted = true;
                         }
                         continue;
-                    }
+                    } /*
+                       * if (assertions.isAssertion(className + "." + invokedMethodName)) { if
+                       * (color.equals("red")) { causeLines.add(line); hasAssertionNotExecuted = true;
+                       * } continue; }
+                       */
                 } else {
                     invocationProperty.setIsInvoked(true);
                     // 実行されていないアサーションを含む helper の場合

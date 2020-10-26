@@ -105,7 +105,6 @@ public class TestClassASTVisitor extends ASTVisitor {
 
             final String identifier = node.getName().getIdentifier();
             final String methodName = className + "." + identifier;
-
             // アノテーションや private などの修飾子のリストを取得
             final ArrayList<String> modifierList = new ArrayList<>();
             for (final Object modifier : node.modifiers()) {
@@ -169,7 +168,12 @@ public class TestClassASTVisitor extends ASTVisitor {
             // unit.getLineNumber(node.getStartPosition()));
 
             // アサーションであるかどうかの判定
-            if (assertions.isAssertion(invokedMethod)) {
+            /*
+             * if (assertions.isAssertion(invokedMethod)) {
+             * activeMethod.setHasAssertionDirectly(true); if (activeMethod !=
+             * activeTopMethod) { activeTopMethod.setHasAssertionDirectly(true); } }
+             */
+            if (declaringClass.getBinaryName().contains("Assert")) {
                 activeMethod.setHasAssertionDirectly(true);
                 if (activeMethod != activeTopMethod) {
                     activeTopMethod.setHasAssertionDirectly(true);

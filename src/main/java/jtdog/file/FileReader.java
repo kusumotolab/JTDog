@@ -20,7 +20,7 @@ public class FileReader {
      * get file paths with specified file extension (extension) under the specified
      * directories (rootDirs) recursively.
      * 
-     * @param rootDirs  : root directoryies
+     * @param rootDirs  : root directories
      * @param extension : string needs to be contained as file extension
      * @return : array of file absolute paths
      */
