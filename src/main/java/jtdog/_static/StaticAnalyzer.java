@@ -54,21 +54,23 @@ public class StaticAnalyzer {
         parser.setResolveBindings(true);
         parser.setEnvironment(classPaths, sourceDirs, null, true);
 
-        final TestClassASTRequestor requestor = new TestClassASTRequestor();
+        for (String source : sources) {
+            final TestClassASTRequestor requestor = new TestClassASTRequestor();
 
-        // ソースが多すぎると OutOfMemoryException: heap space
-        // ソース一つ毎に ast を作ると，テストクラス間の依存関係の解決で問題
-        // setEnvironment の sourceDirs にテストのソースも追加する？
-        parser.createASTs(sources, null, new String[] {}, requestor, new NullProgressMonitor());
-        // 対象ソースごとにASTの解析を行う
-        for (final CompilationUnit unit : requestor.units) {
-            final TypeDeclaration typeDec = (TypeDeclaration) unit.types().get(0);
-            final ITypeBinding bind = typeDec.resolveBinding();
-            testClassNamesToExecuted.add(bind.getBinaryName());
+            // ソースが多すぎると OutOfMemoryException: heap space
+            // ソース一つ毎に ast を作ると，テストクラス間の依存関係の解決で問題
+            // setEnvironment の sourceDirs にテストのソースも追加する？
+            // parser.createASTs(sources, null, new String[] {}, requestor, new NullProgressMonitor());
+            parser.createASTs(new String[] { source }, null, new String[] {}, requestor, new NullProgressMonitor());
+            // 対象ソースごとにASTの解析を行う
+            for (final CompilationUnit unit : requestor.units) {
+                final TypeDeclaration typeDec = (TypeDeclaration) unit.types().get(0);
+                final ITypeBinding bind = typeDec.resolveBinding();
+                testClassNamesToExecuted.add(bind.getBinaryName());
 
-            final TestClassASTVisitor visitor = new TestClassASTVisitor(methodList, unit, assertions, testClassNames);
-            unit.accept(visitor);
-
+                final TestClassASTVisitor visitor = new TestClassASTVisitor(methodList, unit, assertions, testClassNames);
+                unit.accept(visitor);
+            }
         }
 
         // 全クラスの AST を走査後，静的解析で検出できる test smell を検出

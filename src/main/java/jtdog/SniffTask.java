@@ -3,6 +3,7 @@ package jtdog;
 import java.io.File;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.eclipse.jdt.core.dom.IMethodBinding;
@@ -75,7 +76,10 @@ public class SniffTask extends DefaultTask {
         // sourceSets.main.java.srcDirs から取るべき
         // sourceSets.test.output.classesDirs のようにクラスファイルも同様
         // final String[] sourcepathDirs = { projectDir + "/src/main/java" };
-        final String[] sourcepathDirs = FileSetConverter.toAbsolutePathArray(mainSourceSet.getJava().getSrcDirs());
+        Set<File> sourceFiles = new HashSet<>();
+        sourceFiles.addAll(sourceFiles);
+        sourceFiles.addAll(mainSourceSet.getJava().getSrcDirs());
+        final String[] sourcepathDirs = FileSetConverter.toAbsolutePathArray(sourceFiles);//(mainSourceSet.getJava().getSrcDirs());
 
         // 静的解析
         final StaticAnalyzer sa = new StaticAnalyzer(sources, sourcepathDirs, externalJarFilePaths);
