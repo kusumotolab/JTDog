@@ -13,6 +13,8 @@ public class TaskResult {
     private int numberOfSmoke;
     @JsonProperty("annotation_free")
     private int numberOfAnnotationFree;
+    @JsonProperty("ignore")
+    private int numberOfIgnore;
 
     @JsonProperty("test_smells")
     private ArrayList<MethodProperty> test_smells;
@@ -21,6 +23,7 @@ public class TaskResult {
         this.numberOfRotten = 0;
         this.numberOfSmoke = 0;
         this.numberOfAnnotationFree = 0;
+        this.numberOfIgnore = 0;
     }
 
     public void setList(ArrayList<MethodProperty> list) {
@@ -37,5 +40,9 @@ public class TaskResult {
 
     public void setNumberOfRotten(int number) {
         this.numberOfRotten = number;
+    }
+
+    public void setNumberOfIgnore(int number) {
+        this.numberOfIgnore = number;
     }
 }

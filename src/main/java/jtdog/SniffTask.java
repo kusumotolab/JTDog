@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.Project;
 import org.gradle.api.plugins.JavaPluginConvention;
@@ -21,6 +20,7 @@ import jtdog.dynamic.MemoryClassLoader;
 import jtdog.file.FileReader;
 import jtdog.file.FileSetConverter;
 import jtdog.file.JSONWriter;
+import jtdog.method.MethodIdentifier;
 import jtdog.method.MethodList;
 import jtdog.method.MethodProperty;
 
@@ -77,9 +77,9 @@ public class SniffTask extends DefaultTask {
         // sourceSets.test.output.classesDirs のようにクラスファイルも同様
         // final String[] sourcepathDirs = { projectDir + "/src/main/java" };
         Set<File> sourceFiles = new HashSet<>();
-        sourceFiles.addAll(sourceFiles);
+        sourceFiles.addAll(testSourceSet.getJava().getSrcDirs());
         sourceFiles.addAll(mainSourceSet.getJava().getSrcDirs());
-        final String[] sourcepathDirs = FileSetConverter.toAbsolutePathArray(sourceFiles);//(mainSourceSet.getJava().getSrcDirs());
+        final String[] sourcepathDirs = FileSetConverter.toAbsolutePathArray(sourceFiles);// (mainSourceSet.getJava().getSrcDirs());
 
         // 静的解析
         final StaticAnalyzer sa = new StaticAnalyzer(sources, sourcepathDirs, externalJarFilePaths);
@@ -128,9 +128,10 @@ public class SniffTask extends DefaultTask {
         int rotten = 0;
         int smoke = 0;
         int annotationFree = 0;
+        int ignore = 0;
         // メソッドのリストから test smell を取り出す
-        for (IMethodBinding method : methodList.getMethodBindingList()) {
-            MethodProperty property = methodList.getPropertyByBinding(method);
+        for (MethodIdentifier identifier : methodList.getMethodIdentifierList()) {
+            MethodProperty property = methodList.getPropertyByIdentifier(identifier);
             Set<String> testSmellTypes = property.getTestSmellTypes();
             if (testSmellTypes.size() != 0) {
                 list.add(property);
@@ -143,12 +144,16 @@ public class SniffTask extends DefaultTask {
                 if (testSmellTypes.contains(MethodProperty.ANNOTATION_FREE)) {
                     annotationFree++;
                 }
+                if (testSmellTypes.contains(MethodProperty.IGNORE)) {
+                    ignore++;
+                }
             }
         }
 
         result.setNumberOfRotten(rotten);
         result.setNumberOfSmoke(smoke);
         result.setNumberOfAnnotationFree(annotationFree);
+        result.setNumberOfIgnore(ignore);
 
         jw.writeJSONFile(result, "out", "result");
     }

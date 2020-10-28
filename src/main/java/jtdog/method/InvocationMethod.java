@@ -1,18 +1,16 @@
 package jtdog.method;
 
-import org.eclipse.jdt.core.dom.IMethodBinding;
-
 public class InvocationMethod {
-    private IMethodBinding binding;
+    private MethodIdentifier identifier;
     private int line;
 
-    public InvocationMethod(IMethodBinding binding, int line) {
-        this.binding = binding;
+    public InvocationMethod(MethodIdentifier identifier, int line) {
+        this.identifier = identifier;
         this.line = line;
     }
 
-    public IMethodBinding getBinding() {
-        return binding;
+    public MethodIdentifier getMethodIdentifier() {
+        return identifier;
     }
 
     public int getLineNumber() {

@@ -9,13 +9,13 @@ import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
+import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
-import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
-import org.eclipse.jdt.core.dom.TypeDeclaration;
 
 import jtdog.AssertionList;
 import jtdog.method.InvocationMethod;
+import jtdog.method.MethodIdentifier;
 import jtdog.method.MethodList;
 import jtdog.method.MethodProperty;
 
@@ -44,31 +44,35 @@ public class StaticAnalyzer {
      * @throws IOException
      */
     public void run(final MethodList methodList, final AssertionList assertions) throws IOException {
-        // 解析器の生成
-        final ASTParser parser = ASTParser.newParser(AST.JLS14);
-
-        final Map<String, String> options = JavaCore.getOptions();
-        JavaCore.setComplianceOptions(JavaCore.VERSION_11, options);
-        parser.setCompilerOptions(options);
-        // for resolve bindings
-        parser.setResolveBindings(true);
-        parser.setEnvironment(classPaths, sourceDirs, null, true);
 
         for (String source : sources) {
+            // 解析器の生成
+            final ASTParser parser = ASTParser.newParser(AST.JLS14);
+
+            final Map<String, String> options = JavaCore.getOptions();
+            JavaCore.setComplianceOptions(JavaCore.VERSION_11, options);
+            parser.setCompilerOptions(options);
+            // for resolve bindings
+            parser.setResolveBindings(true);
+            parser.setEnvironment(classPaths, sourceDirs, null, true);
             final TestClassASTRequestor requestor = new TestClassASTRequestor();
 
             // ソースが多すぎると OutOfMemoryException: heap space
             // ソース一つ毎に ast を作ると，テストクラス間の依存関係の解決で問題
             // setEnvironment の sourceDirs にテストのソースも追加する？
-            // parser.createASTs(sources, null, new String[] {}, requestor, new NullProgressMonitor());
+            // parser.createASTs(sources, null, new String[] {}, requestor, new
+            // NullProgressMonitor());
             parser.createASTs(new String[] { source }, null, new String[] {}, requestor, new NullProgressMonitor());
             // 対象ソースごとにASTの解析を行う
             for (final CompilationUnit unit : requestor.units) {
-                final TypeDeclaration typeDec = (TypeDeclaration) unit.types().get(0);
-                final ITypeBinding bind = typeDec.resolveBinding();
+                final AbstractTypeDeclaration dec = (AbstractTypeDeclaration) unit.types().get(0);
+                // final TypeDeclaration typeDec = (TypeDeclaration) unit.types().get(0);
+                final ITypeBinding bind = dec.resolveBinding();
                 testClassNamesToExecuted.add(bind.getBinaryName());
+                System.out.println("unit: " + bind.getBinaryName());
 
-                final TestClassASTVisitor visitor = new TestClassASTVisitor(methodList, unit, assertions, testClassNames);
+                final TestClassASTVisitor visitor = new TestClassASTVisitor(methodList, unit, assertions,
+                        testClassNames);
                 unit.accept(visitor);
             }
         }
@@ -81,26 +85,27 @@ public class StaticAnalyzer {
      * Recursively check for indirect inclusion of assertions and return the
      * results.
      * 
-     * @param mp
+     * @param
      * @return
      */
-    private boolean hasAssertionIndirectly(final MethodProperty mp, MethodList methodList) {
+    private boolean hasAssertionIndirectly(final MethodIdentifier identifier, final MethodProperty methodProperty,
+            MethodList methodList) {
         boolean hasAssertion = false;
 
-        for (final InvocationMethod invocation : mp.getInvocationList()) {
-            MethodProperty tmp;
+        for (final InvocationMethod invocation : methodProperty.getInvocationList()) {
+            MethodProperty invocationProperty;
             // ユーザー定義のメソッドではない
             // あるいは再帰呼び出しを行う場合
-            if ((tmp = methodList.getPropertyByBinding(invocation.getBinding())) == null
-                    || mp.getBinding() == invocation) {
+            if ((invocationProperty = methodList.getPropertyByIdentifier(invocation.getMethodIdentifier())) == null
+                    || identifier.equals(invocation.getMethodIdentifier())) {
                 continue;
             }
 
-            if (tmp.hasAssertionDirectly() || tmp.hasAssertionIndirectly()) {
+            if (invocationProperty.hasAssertionDirectly() || invocationProperty.hasAssertionIndirectly()) {
                 hasAssertion = true;
                 break;
             } else {
-                hasAssertion = hasAssertionIndirectly(tmp, methodList);
+                hasAssertion = hasAssertionIndirectly(identifier, invocationProperty, methodList);
             }
         }
 
@@ -113,9 +118,9 @@ public class StaticAnalyzer {
      * @param methodList
      */
     private void detectTestSmellsStatically(MethodList methodList) {
-        for (final IMethodBinding method : methodList.getMethodBindingList()) {
-            final MethodProperty property = methodList.getPropertyByBinding(method);
-            final boolean hasAssertionIndirectly = hasAssertionIndirectly(property, methodList);
+        for (final MethodIdentifier identifier : methodList.getMethodIdentifierList()) {
+            final MethodProperty property = methodList.getPropertyByIdentifier(identifier);
+            final boolean hasAssertionIndirectly = hasAssertionIndirectly(identifier, property, methodList);
             property.setHasAssertionIndirectly(hasAssertionIndirectly);
 
             // ローカルクラスや匿名クラスで宣言されたメソッドの場合は絶対にテストメソッドではないのでスキップ

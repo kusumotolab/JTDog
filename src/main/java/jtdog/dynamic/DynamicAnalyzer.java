@@ -278,14 +278,15 @@ public class DynamicAnalyzer {
                 int line = invocation.getLineNumber();
                 String color = getColor(coverage.getLine(line).getStatus());
                 // helper かどうか調べるため，isInvoke の値をセット
-                MethodProperty invocationProperty = methodList.getPropertyByBinding(invocation.getBinding());
+                MethodProperty invocationProperty = methodList
+                        .getPropertyByIdentifier(invocation.getMethodIdentifier());
 
                 // ローカルと匿名に対応できれば
                 // color の判定は red だけで良いはず
                 if (invocationProperty == null) {
                     // 実行されていないアサーションの場合
-                    String className = invocation.getBinding().getDeclaringClass().getBinaryName();
-                    String invokedMethodName = invocation.getBinding().getName();
+                    String className = invocation.getMethodIdentifier().getClassBinaryName();
+                    // String invokedMethodName = invocation.getBinding().getName();
                     if (className.contains("Assert")) {
                         if (color.equals("red")) {
                             causeLines.add(line);

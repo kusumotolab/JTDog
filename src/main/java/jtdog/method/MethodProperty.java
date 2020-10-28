@@ -8,8 +8,6 @@ import java.util.Set;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import org.eclipse.jdt.core.dom.IMethodBinding;
-
 public class MethodProperty {
 
     public static final String IGNORE = "ignore";
@@ -25,7 +23,6 @@ public class MethodProperty {
     private boolean isInvoked;
     private String color;
     private final List<InvocationMethod> invocationList;
-    private IMethodBinding binding;
     private String binaryName;
     private boolean isDeclaredInLocal;
 
@@ -112,15 +109,6 @@ public class MethodProperty {
 
     public void setColor(String color) {
         this.color = color;
-    }
-
-    @JsonIgnore
-    public IMethodBinding getBinding() {
-        return binding;
-    }
-
-    public void setBinding(IMethodBinding binding) {
-        this.binding = binding;
     }
 
     @JsonIgnore

@@ -5,39 +5,37 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.eclipse.jdt.core.dom.IMethodBinding;
-
 public class MethodList {
 
-    private final List<IMethodBinding> methodBindingList;
-    private final Map<IMethodBinding, MethodProperty> methodBindingToProperty;
+    private final List<MethodIdentifier> methodIdentifierList;
+    private final Map<MethodIdentifier, MethodProperty> methodIdentifierToProperty;
 
     public MethodList() {
-        methodBindingList = new ArrayList<>();
-        methodBindingToProperty = new HashMap<>();
+        methodIdentifierList = new ArrayList<>();
+        methodIdentifierToProperty = new HashMap<>();
     }
 
-    public void addMethodBinding(final IMethodBinding binding) {
-        methodBindingList.add(binding);
+    public void addMethodIdentifier(final MethodIdentifier identifier) {
+        methodIdentifierList.add(identifier);
     }
 
-    public List<IMethodBinding> getMethodBindingList() {
-        return methodBindingList;
+    public List<MethodIdentifier> getMethodIdentifierList() {
+        return methodIdentifierList;
     }
 
-    public void addMethodProperty(final IMethodBinding binding, final MethodProperty property) {
-        methodBindingToProperty.put(binding, property);
+    public void addMethodProperty(final MethodIdentifier identifier, final MethodProperty property) {
+        methodIdentifierToProperty.put(identifier, property);
     }
 
-    public MethodProperty getPropertyByBinding(final IMethodBinding binding) {
-        return methodBindingToProperty.get(binding);
+    public MethodProperty getPropertyByIdentifier(final MethodIdentifier identifier) {
+        return methodIdentifierToProperty.get(identifier);
     }
 
     // オーバーロードを考慮しない
     // テストメソッドはオーバーロードされないという前提で運用している
     public MethodProperty getPropertyByName(final String name) {
-        for (IMethodBinding binding : methodBindingList) {
-            MethodProperty property = getPropertyByBinding(binding);
+        for (MethodIdentifier identifier : methodIdentifierList) {
+            MethodProperty property = getPropertyByIdentifier(identifier);
             if (property.getBinaryName().equals(name)) {
                 return property;
             }

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.jdt.core.dom.ASTVisitor;
+import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.IMethodBinding;
@@ -14,6 +15,7 @@ import org.eclipse.jdt.core.dom.TypeDeclaration;
 
 import jtdog.AssertionList;
 import jtdog.method.InvocationMethod;
+import jtdog.method.MethodIdentifier;
 import jtdog.method.MethodList;
 import jtdog.method.MethodProperty;
 
@@ -37,8 +39,9 @@ public class TestClassASTVisitor extends ASTVisitor {
         this.assertions = assertions;
         this.testClassNames = testClassNames;
 
-        final TypeDeclaration typeDec = (TypeDeclaration) unit.types().get(0);
-        final ITypeBinding bind = typeDec.resolveBinding();
+        final AbstractTypeDeclaration dec = (AbstractTypeDeclaration) unit.types().get(0);
+        // final TypeDeclaration typeDec = (TypeDeclaration) unit.types().get(0);
+        final ITypeBinding bind = dec.resolveBinding();
         testClassName = bind.getBinaryName();
     }
 
@@ -48,14 +51,14 @@ public class TestClassASTVisitor extends ASTVisitor {
         previousActiveMethod = activeMethod;
 
         ITypeBinding binding = node.resolveBinding();
-        if (!binding.isLocal()) { // ローカルクラスでない場合
-            // previousActiveTopMethod = activeTopMethod;
-
-            final ArrayList<String> modifierList = new ArrayList<>();
-            for (final Object modifier : node.modifiers()) {
-                modifierList.add(modifier.toString());
-            }
-        }
+        /*
+         * if (!binding.isLocal()) { // ローカルクラスでない場合 // previousActiveTopMethod =
+         * activeTopMethod;
+         * 
+         * // final ArrayList<String> modifierList = new ArrayList<>(); for (final
+         * Object modifier : node.modifiers()) { modifierList.add(modifier.toString());
+         * } }
+         */
 
         testClassNames.add(binding.getBinaryName());
 
@@ -103,8 +106,8 @@ public class TestClassASTVisitor extends ASTVisitor {
             final ITypeBinding declaringClass = methodBinding.getDeclaringClass();
             String className = declaringClass.getBinaryName();
 
-            final String identifier = node.getName().getIdentifier();
-            final String methodName = className + "." + identifier;
+            final String methodName = className + "." + node.getName().getIdentifier();
+
             // アノテーションや private などの修飾子のリストを取得
             final ArrayList<String> modifierList = new ArrayList<>();
             for (final Object modifier : node.modifiers()) {
@@ -125,16 +128,8 @@ public class TestClassASTVisitor extends ASTVisitor {
             property.setHasTestAnnotation(hasTestAnnotation);
             property.setHasIgnoreAnnotation(hasIgnoreAnnotation);
             property.setIsMaybeTestMethod(isMaybeTestMethod);
-            property.setBinding(methodBinding);
             property.setBinaryName(methodName);
 
-            // JSON プロパティ
-            property.setName(node.getName().getIdentifier());
-            property.setSetStartPosition(unit.getLineNumber(node.getStartPosition()));
-            property.setClassName(testClassName);
-
-            methodList.addMethodBinding(methodBinding);
-            methodList.addMethodProperty(methodBinding, property);
             activeMethod = property;
             if (!declaringClass.isLocal()) {
                 activeTopMethod = property;
@@ -143,6 +138,14 @@ public class TestClassASTVisitor extends ASTVisitor {
                 property.setIsDeclaredInLocal(true);
             }
 
+            // JSON プロパティ
+            property.setName(node.getName().getIdentifier());
+            property.setSetStartPosition(unit.getLineNumber(node.getStartPosition()));
+            property.setClassName(testClassName);
+
+            MethodIdentifier identifier = new MethodIdentifier(methodBinding);
+            methodList.addMethodIdentifier(identifier);
+            methodList.addMethodProperty(identifier, property);
         }
 
         return super.visit(node);
@@ -154,14 +157,16 @@ public class TestClassASTVisitor extends ASTVisitor {
         if (activeMethod != null) {
             final IMethodBinding methodBinding = node.resolveMethodBinding();
             final ITypeBinding declaringClass = methodBinding.getDeclaringClass();
-            String invokedMethod = declaringClass.getBinaryName() + "." + node.getName().getIdentifier();
+            // String invokedMethod = declaringClass.getBinaryName() + "." +
+            // node.getName().getIdentifier();
 
-            InvocationMethod invocation = new InvocationMethod(methodBinding,
-                    unit.getLineNumber(node.getStartPosition()));
+            MethodIdentifier identifier = new MethodIdentifier(methodBinding);
+            InvocationMethod invocation = new InvocationMethod(identifier, unit.getLineNumber(node.getStartPosition()));
             activeMethod.addInvocation(invocation);
             // activeMethod.addInvocationLineNumber(mb,
             // unit.getLineNumber(node.getStartPosition()));
-            if (activeMethod != activeTopMethod) {
+
+            if (activeMethod != activeTopMethod && activeTopMethod != null) {
                 activeTopMethod.addInvocation(invocation);
             }
             // activeTopMethod.addInvocationLineNumber(mb,
