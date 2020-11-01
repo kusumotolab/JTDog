@@ -187,50 +187,66 @@ public class DynamicAnalyzer {
          * @return
          */
         private MethodProperty getTestMethodProperty(final Description description) {
-            String testMethodName = description.getTestClass().getName() + "." + description.getMethodName();
+            String testMethodName = getTestMethodName(description);
             return methodList.getPropertyByName(testMethodName);
         }
 
         /**
-         * jacocoにより計測した行ごとのCoverageを回収する．
+         * description を基にテストメソッドの名前を取得する．
+         * 
+         * @param description
+         * @return
+         */
+        private String getTestMethodName(final Description description) {
+            return description.getTestClass().getName() + "." + description.getMethodName();
+        }
+
+        /**
+         * jacoco により計測した行ごとの Coverage を回収する．
          *
          * @param description
          * @throws IOException
          */
         private void collectRuntimeData(final Description description) throws IOException {
-            HashSet<Integer> causeLines = new HashSet<>(); // rotten の原因の行番号のリスト
+            HashSet<Integer> rottenLines = new HashSet<>(); // rotten の原因の行番号のリスト
             HashMap<String, IClassCoverage> classNameToCoverage = new HashMap<>();
             ArrayList<IClassCoverage> coverages = new ArrayList<>();
 
             final TestCoverageBuilder coverageBuilder = new TestCoverageBuilder(classNameToCoverage, coverages);
-            analyzeJacocoRuntimeData(coverageBuilder, description, causeLines);
+            analyzeJacocoRuntimeData(coverageBuilder, description, rottenLines);
 
             // 各アサーションが実行されているか調べる
             MethodProperty testMethodProperty = getTestMethodProperty(description);
             for (IClassCoverage coverage : coverages) {
                 String testClassName = coverage.getName().replace("/", ".");
                 System.out.println("coverage: " + testClassName);
-                checkInvocationExecuted(coverage, testMethodProperty, causeLines, classNameToCoverage, testClassName);
+                checkInvocationExecuted(coverage, testMethodProperty, rottenLines, classNameToCoverage, testClassName);
             }
 
-            // 実行されていないアサーションを含む場合，rotten と設定
-            if (causeLines.size() != 0) {
+            // 実行されていないアサーションを含む場合，rotten と判定
+            if (rottenLines.size() != 0) {
                 testMethodProperty.addTestSmellType(MethodProperty.ROTTEN);
-                for (Integer line : causeLines) {
-                    testMethodProperty.addCauseLine(line);
+                for (Integer line : rottenLines) {
+                    testMethodProperty.addRottenLine(line);
                 }
+            }
+
+            // 実行可能な文を含まない場合，empty と判定
+            if (checkMethodIsEmpty(classNameToCoverage.get(testMethodProperty.getClassName()), testMethodProperty,
+                    classNameToCoverage)) {
+                testMethodProperty.addTestSmellType(MethodProperty.EMPTY);
             }
         }
 
         /**
-         * jacocoにより計測した行ごとのCoverageを回収する．
+         * jacoco により計測した行ごとの Coverage を回収する．
          *
-         * @param coverageBuilder 計測したCoverageを格納する保存先
+         * @param coverageBuilder 計測した Coverage を格納する保存先
          * @param description
          * @throws IOException
          */
         private void analyzeJacocoRuntimeData(final TestCoverageBuilder coverageBuilder, final Description description,
-                HashSet<Integer> causeLines) throws IOException {
+                HashSet<Integer> rottenLines) throws IOException {
             final ExecutionDataStore executionData = new ExecutionDataStore();
             final SessionInfoStore sessionInfo = new SessionInfoStore();
             jacocoRuntimeData.collect(executionData, sessionInfo, false);
@@ -268,8 +284,12 @@ public class DynamicAnalyzer {
 
             boolean tmp = false;
             if (tmp) {
+                System.out.println(coverage.getName());
                 for (int i = coverage.getFirstLine(); i <= coverage.getLastLine(); i++) {
-                    System.out.printf("Line %s: %s%n", Integer.valueOf(i), getColor(coverage.getLine(i).getStatus()));
+                    if (!getColor(coverage.getLine(i).getStatus()).equals("")) {
+                        System.out.printf("Line %s: %s%n", Integer.valueOf(i),
+                                getColor(coverage.getLine(i).getStatus()));
+                    }
                 }
             }
 
@@ -313,6 +333,47 @@ public class DynamicAnalyzer {
                 }
             }
             return hasAssertionNotExecuted;
+        }
+
+        /**
+         * 実行可能文を含まないかどうかを調べる
+         * 
+         * @param coverage
+         * @param property
+         * @param classNameToCoverage
+         * @return
+         */
+        private boolean checkMethodIsEmpty(final IClassCoverage coverage, final MethodProperty property,
+                HashMap<String, IClassCoverage> classNameToCoverage) {
+            int startPosition = property.getStartPosition();
+            int endPosition = property.getEndPosition();
+            // メソッドの最後の行についてはカラーがあるため，無視する
+            int loopEndPosition = startPosition < endPosition ? endPosition - 1 : startPosition;
+
+            // カラーがない = 実行不可能文 or 空白行
+            for (int i = startPosition; i <= loopEndPosition; i++) {
+                if (!getColor(coverage.getLine(i).getStatus()).equals("")) {
+                    return false;
+                }
+            }
+
+            // TODO ここは本当に必要か要検討
+            // ローカルクラスや匿名クラスについても同様に実行可能文を含むかチェック
+            String className = coverage.getName().replace("/", ".");
+            for (InvocationMethod invocation : property.getInvocationList()) {
+                MethodProperty invocationProperty = methodList
+                        .getPropertyByIdentifier(invocation.getMethodIdentifier());
+                if (invocationProperty != null) {
+                    String declaredClassName = invocationProperty.getClassName();
+                    if (!declaredClassName.equals(className)
+                            && !checkMethodIsEmpty(classNameToCoverage.get(declaredClassName), property,
+                                    classNameToCoverage)) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
         }
 
         /**

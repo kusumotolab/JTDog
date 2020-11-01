@@ -14,6 +14,7 @@ public class MethodProperty {
     public static final String SMOKE = "smoke";
     public static final String ANNOTATION_FREE = "annotation_free";
     public static final String ROTTEN = "rotten";
+    public static final String EMPTY = "empty";
 
     private boolean hasAssertionDirectly;
     private boolean hasAssertionIndirectly;
@@ -30,17 +31,19 @@ public class MethodProperty {
     private String className;
     @JsonProperty("test_name")
     private String name;
-    @JsonProperty("line")
+    @JsonProperty("start_line")
     private int startPosition;
+    @JsonProperty("end_line")
+    private int endPosition;
     @JsonProperty("test_smell_types")
     private final Set<String> testSmellTypes;
-    @JsonProperty("cause_of_smells")
-    private final List<Integer> causeLines;
+    @JsonProperty("rotten_lines")
+    private final List<Integer> rottenLines;
 
     public MethodProperty() {
         invocationList = new ArrayList<>();
         testSmellTypes = new HashSet<>();
-        causeLines = new ArrayList<>();
+        rottenLines = new ArrayList<>();
     }
 
     public boolean hasAssertionDirectly() {
@@ -161,11 +164,19 @@ public class MethodProperty {
         return startPosition;
     }
 
-    public void setSetStartPosition(final int number) {
+    public void setStartPosition(final int number) {
         this.startPosition = number;
     }
 
-    public void addCauseLine(final int number) {
-        this.causeLines.add(number);
+    public void addRottenLine(final int number) {
+        this.rottenLines.add(number);
+    }
+
+    public int getEndPosition() {
+        return endPosition;
+    }
+
+    public void setEndPosition(int endPosition) {
+        this.endPosition = endPosition;
     }
 }

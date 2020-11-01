@@ -140,7 +140,8 @@ public class TestClassASTVisitor extends ASTVisitor {
 
             // JSON プロパティ
             property.setName(node.getName().getIdentifier());
-            property.setSetStartPosition(unit.getLineNumber(node.getStartPosition()));
+            property.setStartPosition(unit.getLineNumber(node.getStartPosition()));
+            property.setEndPosition(unit.getLineNumber(node.getStartPosition() + node.getLength()));
             property.setClassName(testClassName);
 
             MethodIdentifier identifier = new MethodIdentifier(methodBinding);
