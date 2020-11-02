@@ -56,36 +56,24 @@ public class SniffTask extends DefaultTask {
         SourceSet testSourceSet = project.getConvention().getPlugin(JavaPluginConvention.class).getSourceSets()
                 .getByName("test");
 
-        // ここどうにかしたい
-        // final AssertionList assertions = new
-        // AssertionList(org.assertj.core.api.Assertions.class);
-        final AssertionList assertions = new AssertionList(org.junit.Assert.class);
-
         // 外部 jar のパス
         final Set<File> classPaths = FileReader.getExternalJarFiles(project);
         final String[] externalJarFilePaths = FileSetConverter.toAbsolutePathArray(classPaths);
 
         // 解析するソースコードのパス
-        // final String projectDir = getProject().getProjectDir().getPath();
-        // final String[] test = { projectDir + "/src/test" };
-        // final String[] sources = FileReader.getFilePaths(test, "java");
         final Set<File> testSourceFiles = testSourceSet.getJava().getFiles();
         final String[] sources = FileSetConverter.toAbsolutePathArray(testSourceFiles);
 
         // java ファイルが直下にあるすべてのディレクトリのパス
-        // sourceSets.main.java.srcDirs から取るべき
-        // sourceSets.test.output.classesDirs のようにクラスファイルも同様
-        // final String[] sourcepathDirs = { projectDir + "/src/main/java" };
         Set<File> sourceFiles = new HashSet<>();
         sourceFiles.addAll(testSourceSet.getJava().getSrcDirs());
         sourceFiles.addAll(mainSourceSet.getJava().getSrcDirs());
-        final String[] sourcepathDirs = FileSetConverter.toAbsolutePathArray(sourceFiles);// (mainSourceSet.getJava().getSrcDirs());
+        final String[] sourcepathDirs = FileSetConverter.toAbsolutePathArray(sourceFiles);
 
         // 静的解析
         final StaticAnalyzer sa = new StaticAnalyzer(sources, sourcepathDirs, externalJarFilePaths);
-        sa.run(methodList, assertions);
+        sa.run(methodList);
 
-        // 動的解析
         // classpath にソースファイルのパスを追加
         SourceSetOutput mainOutput = mainSourceSet.getOutput();
         Set<File> mainClassesDirs = mainOutput.getClassesDirs().getFiles();
@@ -94,19 +82,17 @@ public class SniffTask extends DefaultTask {
             classPaths.add(new File(dir.getAbsolutePath()));
         }
 
-        // classPaths.add(new File(projectDir + "/build/classes/java/main/"));
-
         // URLClassLoader 生成
         URL[] urls = FileSetConverter.toURLs(classPaths);
         ClassLoader parent = DynamicAnalyzer.class.getClassLoader();
         final MemoryClassLoader loader = new MemoryClassLoader(urls, parent);
-        // final DynamicAnalyzer da = new DynamicAnalyzer(sa.getTestClassNames(),
-        // sa.getTestClassNamesToExecuted(),
-        // projectDir);
 
         String testClassesDirPath = "";
         SourceSetOutput testOutput = testSourceSet.getOutput();
         Set<File> testClassesDirs = testOutput.getClassesDirs().getFiles();
+
+        // 現在の方式ではディレクトリのパスとテストクラスのバイナリ名から .class ファイルを読み込むため，
+        // テストクラスのビルド時の生成ファイルを出力するディレクトリが複数の場合はとりあえず解析不可能としておく
         if (testClassesDirs.size() == 1) {
             for (File dir : testClassesDirs) {
                 testClassesDirPath = dir.getAbsolutePath();
@@ -114,10 +100,11 @@ public class SniffTask extends DefaultTask {
         } else {
             throw new Exception();
         }
+
+        // 動的解析
         final DynamicAnalyzer da = new DynamicAnalyzer(sa.getTestClassNames(), sa.getTestClassNamesToExecuted(),
                 testClassesDirPath);
-
-        da.run(methodList, assertions, loader);
+        da.run(methodList, loader);
 
         // generate result JSON file
         final TaskResult result = new TaskResult();

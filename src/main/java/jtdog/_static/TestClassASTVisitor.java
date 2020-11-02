@@ -13,7 +13,6 @@ import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 
-import jtdog.AssertionList;
 import jtdog.method.InvocationMethod;
 import jtdog.method.MethodIdentifier;
 import jtdog.method.MethodList;
@@ -23,7 +22,6 @@ public class TestClassASTVisitor extends ASTVisitor {
 
     private final MethodList methodList;
     private final CompilationUnit unit;
-    private final AssertionList assertions;
     private List<String> testClassNames;
 
     private MethodProperty activeMethod; // 訪問中のメソッド呼び出しのスコープ解決用
@@ -32,15 +30,13 @@ public class TestClassASTVisitor extends ASTVisitor {
     private MethodProperty activeTopMethod;
     private final String testClassName;
 
-    public TestClassASTVisitor(final MethodList methodList, final CompilationUnit unit, final AssertionList assertions,
+    public TestClassASTVisitor(final MethodList methodList, final CompilationUnit unit,
             final List<String> testClassNames) {
         this.methodList = methodList;
         this.unit = unit;
-        this.assertions = assertions;
         this.testClassNames = testClassNames;
 
         final AbstractTypeDeclaration dec = (AbstractTypeDeclaration) unit.types().get(0);
-        // final TypeDeclaration typeDec = (TypeDeclaration) unit.types().get(0);
         final ITypeBinding bind = dec.resolveBinding();
         testClassName = bind.getBinaryName();
     }
@@ -51,35 +47,20 @@ public class TestClassASTVisitor extends ASTVisitor {
         previousActiveMethod = activeMethod;
 
         ITypeBinding binding = node.resolveBinding();
-        /*
-         * if (!binding.isLocal()) { // ローカルクラスでない場合 // previousActiveTopMethod =
-         * activeTopMethod;
-         * 
-         * // final ArrayList<String> modifierList = new ArrayList<>(); for (final
-         * Object modifier : node.modifiers()) { modifierList.add(modifier.toString());
-         * } }
-         */
-
         testClassNames.add(binding.getBinaryName());
 
         return super.visit(node);
-
     }
 
     @Override
     public void endVisit(final TypeDeclaration node) {
         activeMethod = previousActiveMethod;
-        if (node.resolveBinding().isLocal()) {
-            // activeTopMethod = previousActiveTopMethod;
-        }
-
     }
 
     // 匿名クラス
     @Override
     public boolean visit(final AnonymousClassDeclaration node) {
         previousActiveMethod = activeMethod;
-        // previousActiveTopMethod = activeTopMethod;
 
         ITypeBinding binding = node.resolveBinding();
         testClassNames.add(binding.getBinaryName());
@@ -90,15 +71,11 @@ public class TestClassASTVisitor extends ASTVisitor {
     @Override
     public void endVisit(final AnonymousClassDeclaration node) {
         activeMethod = previousActiveMethod;
-        // activeTopMethod = previousActiveTopMethod;
-
     }
 
     // メソッド宣言
     @Override
     public boolean visit(final MethodDeclaration node) {
-        // IMethodBinding で管理すればローカル。匿名に対応できそうな気がする
-
         // コンストラクタを除外
         if (!node.isConstructor()) {
             final MethodProperty property = new MethodProperty();
@@ -144,6 +121,7 @@ public class TestClassASTVisitor extends ASTVisitor {
             property.setEndPosition(unit.getLineNumber(node.getStartPosition() + node.getLength()));
             property.setClassName(testClassName);
 
+            // メソッドのリストに追加
             MethodIdentifier identifier = new MethodIdentifier(methodBinding);
             methodList.addMethodIdentifier(identifier);
             methodList.addMethodProperty(identifier, property);
@@ -158,27 +136,16 @@ public class TestClassASTVisitor extends ASTVisitor {
         if (activeMethod != null) {
             final IMethodBinding methodBinding = node.resolveMethodBinding();
             final ITypeBinding declaringClass = methodBinding.getDeclaringClass();
-            // String invokedMethod = declaringClass.getBinaryName() + "." +
-            // node.getName().getIdentifier();
 
             MethodIdentifier identifier = new MethodIdentifier(methodBinding);
             InvocationMethod invocation = new InvocationMethod(identifier, unit.getLineNumber(node.getStartPosition()));
             activeMethod.addInvocation(invocation);
-            // activeMethod.addInvocationLineNumber(mb,
-            // unit.getLineNumber(node.getStartPosition()));
 
             if (activeMethod != activeTopMethod && activeTopMethod != null) {
                 activeTopMethod.addInvocation(invocation);
             }
-            // activeTopMethod.addInvocationLineNumber(mb,
-            // unit.getLineNumber(node.getStartPosition()));
 
             // アサーションであるかどうかの判定
-            /*
-             * if (assertions.isAssertion(invokedMethod)) {
-             * activeMethod.setHasAssertionDirectly(true); if (activeMethod !=
-             * activeTopMethod) { activeTopMethod.setHasAssertionDirectly(true); } }
-             */
             if (declaringClass.getBinaryName().contains("Assert")) {
                 activeMethod.setHasAssertionDirectly(true);
                 if (activeMethod != activeTopMethod) {

@@ -25,7 +25,6 @@ import org.junit.runner.JUnitCore;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
 
-import jtdog.AssertionList;
 import jtdog.method.InvocationMethod;
 import jtdog.method.MethodList;
 import jtdog.method.MethodProperty;
@@ -59,31 +58,10 @@ public class DynamicAnalyzer {
     }
 
     // テスト以外のクラスも instrumenter を適用すべき？
-    public void run(final MethodList methodList, final AssertionList assertions,
-            final MemoryClassLoader memoryClassLoader) throws Exception {
+    public void run(final MethodList methodList, final MemoryClassLoader memoryClassLoader) throws Exception {
 
-        // FileReader で ${projectDir}/build/classes/java 以下の .class ファイルのパスを取得
-        // それぞれについて instrument
-        // 名前をちゃんとする必要がある．
-        // findClass で使うのは jacoco_junit.UserTest みたいな感じ
-        // FileReader.getFilePaths で取得できるのは
-        // /home/tm/RottenGreen/practice/jacoco_junit/build/classes/java/test/jacoco_junit/UserTest.class
-        // みたいな感じ
-        // /home/tm/RottenGreen/practice/jacoco_junit/build/classes/java/test/ を replace
-        // で消す？
-        /*
-         * String[] rootTest = { projectDirPath + "/build/classes/java/test" }; String[]
-         * sources = FileReader.getFilePaths(rootTest, "class"); for (final String name
-         * : sources) { String fqn = name.replace(projectDirPath +
-         * "/build/classes/java/test/", "").replace(".class", "") .replace("/", ".");
-         * System.out.println("source test: " + fqn); fqnToPathString.put(fqn, name);
-         * final InputStream original = new FileInputStream(name); final byte[]
-         * instrumented = jacocoInstrumenter.instrument(original, name);
-         * original.close(); memoryClassLoader.addDefinition(fqn, instrumented); }
-         */
-
+        // テストクラスすべてに instrumenter を適用
         for (String testClassName : testClassNames) {
-            // System.out.println("list: " + testClassName);
             final InputStream original = getTargetClass(testClassName);
             final byte[] instrumented = jacocoInstrumenter.instrument(original, testClassName);
             original.close();
@@ -93,41 +71,27 @@ public class DynamicAnalyzer {
         // テストクラスのロード
         final List<Class<?>> testClasses = new ArrayList<>();
         for (final String name : testClassNamesToExecuted) {
-            // String target = testDirPath + "/" + name;
             System.out.println("name: " + name);
-
-            /*
-             * final InputStream original = getTargetClass(name); final byte[] instrumented
-             * = jacocoInstrumenter.instrument(original, name); original.close();
-             * memoryClassLoader.addDefinition(name, instrumented);
-             */
-
             final Class<?> targetClass = memoryClassLoader.loadClass(name);
             testClasses.add(targetClass);
         }
-        final JUnitCore junit = new JUnitCore();
-        final RunListener listener = new CoverageMeasurementListener(methodList, assertions);
-        junit.addListener(listener);
 
+        // JUnit runner を使用
+        final JUnitCore junit = new JUnitCore();
+        final RunListener listener = new CoverageMeasurementListener(methodList);
+        junit.addListener(listener);
         junit.run(testClasses.toArray(new Class<?>[testClasses.size()]));
     }
 
+    /**
+     * 指定された名前の .class ファイルを InputStream として読み込む
+     * 
+     * @param name
+     * @return
+     * @throws FileNotFoundException
+     */
     private InputStream getTargetClass(final String name) throws FileNotFoundException {
-        /*
-         * String subClassName = ""; String className = name; for (String testClassName
-         * : topTestClassNames) { if (name.startsWith(testClassName)) { subClassName =
-         * name.substring(testClassName.length()); className = name.substring(0,
-         * testClassName.length()); } }
-         */
-
-        // final String resource = projectDirPath + "/build/classes/java/test/" +
-        // className.replace('.', '/')
-        // + subClassName.replace(".", "$") + ".class";
-        // final String resource = testClassesDirPath + "/build/classes/java/test/" +
-        // name.replace('.', '/') + ".class";
         final String resource = testClassesDirPath + "/" + name.replace('.', '/') + ".class";
-        // 直接クラスファイルから読み込む
-        // System.out.println(" resource: " + resource);
         return new FileInputStream(resource);
     }
 
@@ -136,12 +100,10 @@ public class DynamicAnalyzer {
      */
     class CoverageMeasurementListener extends RunListener {
         private final MethodList methodList;
-        private final AssertionList assertions;
         private boolean analyzeRuntimeData;
 
-        public CoverageMeasurementListener(final MethodList methodList, final AssertionList assertions) {
+        public CoverageMeasurementListener(final MethodList methodList) {
             this.methodList = methodList;
-            this.assertions = assertions;
             this.analyzeRuntimeData = true;
         }
 
@@ -301,8 +263,6 @@ public class DynamicAnalyzer {
                 MethodProperty invocationProperty = methodList
                         .getPropertyByIdentifier(invocation.getMethodIdentifier());
 
-                // ローカルと匿名に対応できれば
-                // color の判定は red だけで良いはず
                 if (invocationProperty == null) {
                     // 実行されていないアサーションの場合
                     String className = invocation.getMethodIdentifier().getClassBinaryName();
@@ -313,11 +273,7 @@ public class DynamicAnalyzer {
                             hasAssertionNotExecuted = true;
                         }
                         continue;
-                    } /*
-                       * if (assertions.isAssertion(className + "." + invokedMethodName)) { if
-                       * (color.equals("red")) { causeLines.add(line); hasAssertionNotExecuted = true;
-                       * } continue; }
-                       */
+                    }
                 } else {
                     invocationProperty.setIsInvoked(true);
                     // 実行されていないアサーションを含む helper の場合

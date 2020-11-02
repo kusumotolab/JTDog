@@ -80,7 +80,6 @@ public class FileReader {
         if (configuration == null) {
             return;
         }
-        // configuration.setCanBeResolved(true);
         configuration.forEach(file -> {
             files.add(file);
         });

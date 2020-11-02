@@ -13,7 +13,6 @@ import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 
-import jtdog.AssertionList;
 import jtdog.method.InvocationMethod;
 import jtdog.method.MethodIdentifier;
 import jtdog.method.MethodList;
@@ -43,7 +42,7 @@ public class StaticAnalyzer {
      * @param testSmells : list to save the analysis results.
      * @throws IOException
      */
-    public void run(final MethodList methodList, final AssertionList assertions) throws IOException {
+    public void run(final MethodList methodList) throws IOException {
 
         for (String source : sources) {
             // 解析器の生成
@@ -57,11 +56,7 @@ public class StaticAnalyzer {
             parser.setEnvironment(classPaths, sourceDirs, null, true);
             final TestClassASTRequestor requestor = new TestClassASTRequestor();
 
-            // ソースが多すぎると OutOfMemoryException: heap space
-            // ソース一つ毎に ast を作ると，テストクラス間の依存関係の解決で問題
-            // setEnvironment の sourceDirs にテストのソースも追加する？
-            // parser.createASTs(sources, null, new String[] {}, requestor, new
-            // NullProgressMonitor());
+            // 引数に与えるソースが多すぎると OutOfMemoryException: heap space
             parser.createASTs(new String[] { source }, null, new String[] {}, requestor, new NullProgressMonitor());
             // 対象ソースごとにASTの解析を行う
             for (final CompilationUnit unit : requestor.units) {
@@ -71,8 +66,7 @@ public class StaticAnalyzer {
                 testClassNamesToExecuted.add(bind.getBinaryName());
                 System.out.println("unit: " + bind.getBinaryName());
 
-                final TestClassASTVisitor visitor = new TestClassASTVisitor(methodList, unit, assertions,
-                        testClassNames);
+                final TestClassASTVisitor visitor = new TestClassASTVisitor(methodList, unit, testClassNames);
                 unit.accept(visitor);
             }
         }
