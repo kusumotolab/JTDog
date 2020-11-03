@@ -25,6 +25,7 @@ import org.junit.runner.JUnitCore;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
 
+import jtdog.file.FileReader;
 import jtdog.method.InvocationMethod;
 import jtdog.method.MethodList;
 import jtdog.method.MethodProperty;
@@ -59,6 +60,10 @@ public class DynamicAnalyzer {
 
     // テスト以外のクラスも instrumenter を適用すべき？
     public void run(final MethodList methodList, final MemoryClassLoader memoryClassLoader) throws Exception {
+
+        for (String path : FileReader.getFilePaths(new String[] { testClassesDirPath }, "class")) {
+            System.out.println("path: " + path);
+        }
 
         // テストクラスすべてに instrumenter を適用
         for (String testClassName : testClassNames) {

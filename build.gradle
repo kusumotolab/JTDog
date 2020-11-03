@@ -9,8 +9,6 @@
 plugins {
     // Apply the Java Gradle plugin development plugin to add support for developing Gradle plugins
     id 'java-gradle-plugin'
-     // To make fat jar
-    id 'com.github.johnrengelman.shadow' version '5.2.0'
     id 'java'
 
     id 'maven-publish'

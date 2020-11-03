@@ -12,6 +12,9 @@ import org.gradle.api.Project;
 public class JTDogPlugin implements Plugin<Project> {
     public void apply(final Project project) {
         // Register a task
+        // 現在 compileJava や compileTestJava をルートプロジェクトのみで実行することになってる
+        // これらの task をサブプロジェクトで実行する必要がある．
+        // 一応プラグインを各サブプロジェクトで使用すれば sniff task は実行できる
         project.getTasks().register("sniff", SniffTask.class, task -> {
             task.dependsOn("compileJava");
             task.dependsOn("compileTestJava");

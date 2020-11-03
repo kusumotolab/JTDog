@@ -18,8 +18,8 @@ public class TestCoverageBuilder extends CoverageBuilder {
 
     @Override
     public void visitCoverage(final IClassCoverage coverage) {
-        String testClassName = coverage.getName().replace("/", ".");
-        classNameToCoverage.put(testClassName, coverage);
+        String className = coverage.getName().replace("/", ".");
+        classNameToCoverage.put(className, coverage);
         coverages.add(coverage);
     }
 
