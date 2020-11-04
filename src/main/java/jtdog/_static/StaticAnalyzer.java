@@ -99,7 +99,7 @@ public class StaticAnalyzer {
                 hasAssertion = true;
                 break;
             } else {
-                hasAssertion = hasAssertionIndirectly(identifier, invocationProperty, methodList);
+                hasAssertion = hasAssertionIndirectly(invocation.getMethodIdentifier(), invocationProperty, methodList);
             }
         }
 

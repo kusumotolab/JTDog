@@ -98,6 +98,7 @@ public class SniffTask extends DefaultTask {
                 testClassesDirPath = dir.getAbsolutePath();
             }
         } else {
+            loader.close();
             throw new Exception();
         }
 

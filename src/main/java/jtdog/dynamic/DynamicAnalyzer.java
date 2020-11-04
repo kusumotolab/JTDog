@@ -25,7 +25,6 @@ import org.junit.runner.JUnitCore;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
 
-import jtdog.file.FileReader;
 import jtdog.method.InvocationMethod;
 import jtdog.method.MethodList;
 import jtdog.method.MethodProperty;
@@ -60,11 +59,6 @@ public class DynamicAnalyzer {
 
     // テスト以外のクラスも instrumenter を適用すべき？
     public void run(final MethodList methodList, final MemoryClassLoader memoryClassLoader) throws Exception {
-
-        for (String path : FileReader.getFilePaths(new String[] { testClassesDirPath }, "class")) {
-            System.out.println("path: " + path);
-        }
-
         // テストクラスすべてに instrumenter を適用
         for (String testClassName : testClassNames) {
             final InputStream original = getTargetClass(testClassName);
@@ -76,7 +70,7 @@ public class DynamicAnalyzer {
         // テストクラスのロード
         final List<Class<?>> testClasses = new ArrayList<>();
         for (final String name : testClassNamesToExecuted) {
-            System.out.println("name: " + name);
+            // System.out.println("name: " + name);
             final Class<?> targetClass = memoryClassLoader.loadClass(name);
             testClasses.add(targetClass);
         }
@@ -132,7 +126,8 @@ public class DynamicAnalyzer {
         @Override
         public void testStarted(final Description description) {
             // for debug
-            System.out.println("start: " + description.getMethodName());
+            System.out.println(
+                    "start: " + description.getMethodName() + " in " + description.getTestClass().getCanonicalName());
 
             jacocoRuntimeData.reset();
             analyzeRuntimeData = true;
@@ -223,7 +218,6 @@ public class DynamicAnalyzer {
             // 一度でもカバレッジ計測されたクラスのみに対してカバレッジ情報を探索
             for (final ExecutionData data : executionData.getContents()) {
                 final String binaryName = data.getName().replace("/", ".");
-                System.out.println("data: " + binaryName + ", " + description.getTestClass().getName());
 
                 // 当該テスト実行でprobeが反応しない＝実行されていない場合はskip
                 if (!data.hasHits()) {

@@ -2,11 +2,14 @@ package jtdog._static;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
+import org.eclipse.jdt.core.dom.AnnotationTypeDeclaration;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.EnumDeclaration;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
@@ -57,6 +60,36 @@ public class TestClassASTVisitor extends ASTVisitor {
         activeMethod = previousActiveMethod;
     }
 
+    @Override
+    public boolean visit(AnnotationTypeDeclaration node) {
+        previousActiveMethod = activeMethod;
+
+        ITypeBinding binding = node.resolveBinding();
+        testClassNames.add(binding.getBinaryName());
+
+        return super.visit(node);
+    }
+
+    @Override
+    public void endVisit(AnnotationTypeDeclaration node) {
+        activeMethod = previousActiveMethod;
+    }
+
+    @Override
+    public boolean visit(EnumDeclaration node) {
+        previousActiveMethod = activeMethod;
+
+        ITypeBinding binding = node.resolveBinding();
+        testClassNames.add(binding.getBinaryName());
+
+        return super.visit(node);
+    }
+
+    @Override
+    public void endVisit(EnumDeclaration node) {
+        activeMethod = previousActiveMethod;
+    }
+
     // 匿名クラス
     @Override
     public boolean visit(final AnonymousClassDeclaration node) {
@@ -84,14 +117,14 @@ public class TestClassASTVisitor extends ASTVisitor {
             String className = declaringClass.getBinaryName();
 
             final String methodName = className + "." + node.getName().getIdentifier();
-
             // アノテーションや private などの修飾子のリストを取得
             final ArrayList<String> modifierList = new ArrayList<>();
             for (final Object modifier : node.modifiers()) {
                 modifierList.add(modifier.toString());
             }
 
-            final boolean hasTestAnnotation = modifierList.contains("@Test") ? true : false;
+            Pattern p = Pattern.compile("^@Test");
+            final boolean hasTestAnnotation = modifierList.stream().anyMatch(e -> p.matcher(e).find());
             final boolean hasIgnoreAnnotation = modifierList.contains("@Ignore") ? true : false;
 
             // JUnit4 におけるテストメソッドの条件（@Test を除く）
