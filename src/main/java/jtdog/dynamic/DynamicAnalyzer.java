@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 
 import org.jacoco.core.analysis.Analyzer;
 import org.jacoco.core.analysis.IClassCoverage;
@@ -31,14 +30,12 @@ import jtdog.method.MethodProperty;
 
 public class DynamicAnalyzer {
 
-    private final IRuntime jacocoRuntime;
-    private final Instrumenter jacocoInstrumenter;
-    private final RuntimeData jacocoRuntimeData;
     private final List<String> testClassNames;
     private final List<String> testClassNamesToExecuted;
     private final String testClassesDirPath;
-
-    Map<String, String> fqnToPathString;
+    private final IRuntime jacocoRuntime;
+    private final Instrumenter jacocoInstrumenter;
+    private final RuntimeData jacocoRuntimeData;
 
     public DynamicAnalyzer(final List<String> testClassNames, final List<String> testClassNamesToExecuted,
             final String testClassesDirPath) {
@@ -49,7 +46,7 @@ public class DynamicAnalyzer {
         this.jacocoRuntime = new LoggerRuntime();
         this.jacocoInstrumenter = new Instrumenter(jacocoRuntime);
         this.jacocoRuntimeData = new RuntimeData();
-        this.fqnToPathString = new HashMap<>();
+
         try {
             jacocoRuntime.startup(jacocoRuntimeData);
         } catch (final Exception e) {
@@ -181,7 +178,6 @@ public class DynamicAnalyzer {
             MethodProperty testMethodProperty = getTestMethodProperty(description);
             for (IClassCoverage coverage : coverages) {
                 String testClassName = coverage.getName().replace("/", ".");
-                // System.out.println("coverage: " + testClassName);
                 checkInvocationExecuted(coverage, testMethodProperty, rottenLines, classNameToCoverage, testClassName);
             }
 
@@ -198,6 +194,7 @@ public class DynamicAnalyzer {
                     classNameToCoverage)) {
                 testMethodProperty.addTestSmellType(MethodProperty.EMPTY);
             }
+
         }
 
         /**
@@ -224,7 +221,6 @@ public class DynamicAnalyzer {
                     continue;
                 }
                 final InputStream original = getTargetClass(binaryName);
-                // System.out.println("analyze: " + binaryName);
                 analyzer.analyzeClass(original, "");
                 original.close();
             }
