@@ -181,7 +181,7 @@ public class DynamicAnalyzer {
             MethodProperty testMethodProperty = getTestMethodProperty(description);
             for (IClassCoverage coverage : coverages) {
                 String testClassName = coverage.getName().replace("/", ".");
-                System.out.println("coverage: " + testClassName);
+                // System.out.println("coverage: " + testClassName);
                 checkInvocationExecuted(coverage, testMethodProperty, rottenLines, classNameToCoverage, testClassName);
             }
 
@@ -224,7 +224,7 @@ public class DynamicAnalyzer {
                     continue;
                 }
                 final InputStream original = getTargetClass(binaryName);
-                System.out.println("analyze: " + binaryName);
+                // System.out.println("analyze: " + binaryName);
                 analyzer.analyzeClass(original, "");
                 original.close();
             }
