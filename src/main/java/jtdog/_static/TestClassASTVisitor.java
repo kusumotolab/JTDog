@@ -126,6 +126,8 @@ public class TestClassASTVisitor extends ASTVisitor {
             Pattern p = Pattern.compile("^@Test");
             final boolean hasTestAnnotation = modifierList.stream().anyMatch(e -> p.matcher(e).find());
             final boolean hasIgnoreAnnotation = modifierList.contains("@Ignore") ? true : false;
+            final boolean isInvoked = modifierList.contains("@Before") | modifierList.contains("@After")
+                    | modifierList.contains("@BeforeClass") | modifierList.contains("@AfterClass") ? true : false;
 
             // JUnit4 におけるテストメソッドの条件（@Test を除く）
             final boolean isMaybeTestMethod = (modifierList.contains("public")
@@ -134,7 +136,7 @@ public class TestClassASTVisitor extends ASTVisitor {
             // MethodProperty を設定
             property.setHasAssertionDirectly(false); // この段階ではアサーションを含むか不明のため
             property.setHasAssertionIndirectly(false); // 同上
-            property.setIsInvoked(false); // 同様の理由
+            property.setIsInvoked(isInvoked); // 同様の理由
             property.setHasTestAnnotation(hasTestAnnotation);
             property.setHasIgnoreAnnotation(hasIgnoreAnnotation);
             property.setIsMaybeTestMethod(isMaybeTestMethod);
