@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTVisitor;
 import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
 import org.eclipse.jdt.core.dom.AnnotationTypeDeclaration;
@@ -181,7 +182,7 @@ public class TestClassASTVisitor extends ASTVisitor {
             }
 
             // アサーションであるかどうかの判定
-            if (declaringClass.getBinaryName().contains("Assert")) {
+            if (declaringClass.getBinaryName().contains("Assert") && node.getNodeType() != ASTNode.ASSERT_STATEMENT) {
                 activeMethod.setHasAssertionDirectly(true);
                 if (activeMethod != activeTopMethod) {
                     activeTopMethod.setHasAssertionDirectly(true);
