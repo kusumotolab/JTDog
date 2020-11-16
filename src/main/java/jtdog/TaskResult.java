@@ -13,8 +13,8 @@ public class TaskResult {
     private int numberOfSmoke;
     @JsonProperty("annotation_free")
     private int numberOfAnnotationFree;
-    @JsonProperty("ignore")
-    private int numberOfIgnore;
+    @JsonProperty("ignored")
+    private int numberOfIgnored;
     @JsonProperty("empty")
     private int numberOfEmpty;
 
@@ -25,7 +25,7 @@ public class TaskResult {
         this.numberOfRotten = 0;
         this.numberOfSmoke = 0;
         this.numberOfAnnotationFree = 0;
-        this.numberOfIgnore = 0;
+        this.numberOfIgnored = 0;
         this.numberOfEmpty = 0;
     }
 
@@ -45,8 +45,8 @@ public class TaskResult {
         this.numberOfRotten = number;
     }
 
-    public void setNumberOfIgnore(int number) {
-        this.numberOfIgnore = number;
+    public void setNumberOfIgnored(int number) {
+        this.numberOfIgnored = number;
     }
 
     public void setNumberOfEmpty(int number) {

@@ -116,7 +116,7 @@ public class SniffTask extends DefaultTask {
         int rotten = 0;
         int smoke = 0;
         int annotationFree = 0;
-        int ignore = 0;
+        int ignored = 0;
         int empty = 0;
         // メソッドのリストから test smell を取り出す
         for (MethodIdentifier identifier : methodList.getMethodIdentifierList()) {
@@ -133,8 +133,8 @@ public class SniffTask extends DefaultTask {
                 if (testSmellTypes.contains(MethodProperty.ANNOTATION_FREE)) {
                     annotationFree++;
                 }
-                if (testSmellTypes.contains(MethodProperty.IGNORE)) {
-                    ignore++;
+                if (testSmellTypes.contains(MethodProperty.IGNORED)) {
+                    ignored++;
                 }
                 if (testSmellTypes.contains(MethodProperty.EMPTY)) {
                     empty++;
@@ -145,7 +145,7 @@ public class SniffTask extends DefaultTask {
         result.setNumberOfRotten(rotten);
         result.setNumberOfSmoke(smoke);
         result.setNumberOfAnnotationFree(annotationFree);
-        result.setNumberOfIgnore(ignore);
+        result.setNumberOfIgnored(ignored);
         result.setNumberOfEmpty(empty);
 
         jw.writeJSONFile(result, "out", "result");

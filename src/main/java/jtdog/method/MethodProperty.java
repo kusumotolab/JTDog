@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class MethodProperty {
 
-    public static final String IGNORE = "ignore";
+    public static final String IGNORED = "ignored";
     public static final String SMOKE = "smoke";
     public static final String ANNOTATION_FREE = "annotation_free";
     public static final String ROTTEN = "rotten";

@@ -123,10 +123,10 @@ public class StaticAnalyzer {
                 continue;
             }
 
-            // ignore test
+            // ignored test
             // - has @Ignore
             if (property.hasIgnoreAnnotation()) {
-                property.addTestSmellType(MethodProperty.IGNORE);
+                property.addTestSmellType(MethodProperty.IGNORED);
                 continue;
             }
 
