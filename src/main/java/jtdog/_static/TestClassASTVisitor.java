@@ -124,9 +124,10 @@ public class TestClassASTVisitor extends ASTVisitor {
                 modifierList.add(modifier.toString());
             }
 
-            Pattern p = Pattern.compile("^@Test");
-            final boolean hasTestAnnotation = modifierList.stream().anyMatch(e -> p.matcher(e).find());
-            final boolean hasIgnoreAnnotation = modifierList.contains("@Ignore") ? true : false;
+            Pattern test = Pattern.compile("^@Test");
+            final boolean hasTestAnnotation = modifierList.stream().anyMatch(e -> test.matcher(e).find());
+            Pattern ignore = Pattern.compile("^Ignore");
+            final boolean hasIgnoreAnnotation = modifierList.stream().anyMatch(e -> ignore.matcher(e).find());
             final boolean isInvoked = modifierList.contains("@Before") | modifierList.contains("@After")
                     | modifierList.contains("@BeforeClass") | modifierList.contains("@AfterClass") ? true : false;
 
