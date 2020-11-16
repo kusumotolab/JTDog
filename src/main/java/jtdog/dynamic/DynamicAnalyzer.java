@@ -260,9 +260,7 @@ public class DynamicAnalyzer {
 
                 if (invocationProperty == null) {
                     // 実行されていないアサーションの場合
-                    String className = invocation.getMethodIdentifier().getClassBinaryName();
-                    // String invokedMethodName = invocation.getBinding().getName();
-                    if (className.contains("Assert")) {
+                    if (invocation.getMethodIdentifier().getSimpleName().startsWith("assert")) {
                         if (color.equals("red")) {
                             causeLines.add(line);
                             hasAssertionNotExecuted = true;

@@ -171,8 +171,6 @@ public class TestClassASTVisitor extends ASTVisitor {
     public boolean visit(final MethodInvocation node) {
         if (activeMethod != null) {
             final IMethodBinding methodBinding = node.resolveMethodBinding();
-            final ITypeBinding declaringClass = methodBinding.getDeclaringClass();
-
             MethodIdentifier identifier = new MethodIdentifier(methodBinding);
             InvocationMethod invocation = new InvocationMethod(identifier, unit.getLineNumber(node.getStartPosition()));
             activeMethod.addInvocation(invocation);
@@ -182,7 +180,7 @@ public class TestClassASTVisitor extends ASTVisitor {
             }
 
             // アサーションであるかどうかの判定
-            if (declaringClass.getBinaryName().contains("Assert") && node.getNodeType() != ASTNode.ASSERT_STATEMENT) {
+            if (node.getName().getIdentifier().startsWith("assert") && node.getNodeType() != ASTNode.ASSERT_STATEMENT) {
                 activeMethod.setHasAssertionDirectly(true);
                 if (activeMethod != activeTopMethod) {
                     activeTopMethod.setHasAssertionDirectly(true);

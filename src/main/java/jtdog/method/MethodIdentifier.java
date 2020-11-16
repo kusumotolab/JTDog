@@ -8,6 +8,7 @@ import org.eclipse.jdt.core.dom.ITypeBinding;
 public class MethodIdentifier {
     private String classBinaryName;
     private String binaryName;
+    private String simpleName;
     private String returnType;
     private ArrayList<String> parameterTypes;
 
@@ -15,6 +16,7 @@ public class MethodIdentifier {
         final ITypeBinding declaringClass = methodBinding.getDeclaringClass();
         this.classBinaryName = declaringClass.getBinaryName();
         this.binaryName = classBinaryName + "." + methodBinding.getName();
+        this.simpleName = methodBinding.getName();
         this.returnType = methodBinding.getReturnType().getBinaryName();
         this.parameterTypes = new ArrayList<>();
 
@@ -74,6 +76,14 @@ public class MethodIdentifier {
 
     public void setBinaryName(String binaryName) {
         this.binaryName = binaryName;
+    }
+
+    public String getSimpleName() {
+        return simpleName;
+    }
+
+    public void setSimpleName(String simpleName) {
+        this.simpleName = simpleName;
     }
 
     public String getReturnType() {
