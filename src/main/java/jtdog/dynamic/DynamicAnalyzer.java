@@ -21,6 +21,8 @@ import org.jacoco.core.runtime.LoggerRuntime;
 import org.jacoco.core.runtime.RuntimeData;
 import org.junit.runner.Description;
 import org.junit.runner.JUnitCore;
+import org.junit.runner.Request;
+import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
 
@@ -29,6 +31,7 @@ import jtdog.method.MethodList;
 import jtdog.method.MethodProperty;
 
 public class DynamicAnalyzer {
+    private final static int RERUN_TIMES = 3;
 
     private final List<String> testClassNames;
     private final List<String> testClassNamesToExecuted;
@@ -108,6 +111,13 @@ public class DynamicAnalyzer {
             // for debug
             System.out.println("test fail: " + failure.getMessage());
             System.out.println("test fail class: " + failure.getDescription().getClassName());
+
+            // identify flaky test failure
+            if (rerun(RERUN_TIMES, failure.getDescription().getTestClass(), failure.getDescription().getMethodName())) {
+                // this test method is flaky
+                MethodProperty testMethodProperty = getTestMethodProperty(failure.getDescription());
+                testMethodProperty.addTestSmellType(MethodProperty.FLAKY);
+            }
 
             // test fail = not rotten
             analyzeRuntimeData = false;
@@ -341,6 +351,17 @@ public class DynamicAnalyzer {
                     return "green";
             }
             return "";
+        }
+
+        private boolean rerun(int numberOfTimes, Class<?> clazz, String methodName) {
+            JUnitCore junit = new JUnitCore();
+            for (int i = 0; i < numberOfTimes; i++) {
+                Result result = junit.run(Request.method(clazz, methodName));
+                if (result.wasSuccessful()) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }

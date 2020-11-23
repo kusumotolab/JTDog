@@ -17,6 +17,8 @@ public class TaskResult {
     private int numberOfIgnored;
     @JsonProperty("empty")
     private int numberOfEmpty;
+    @JsonProperty("flaky")
+    private int numberOfFlaky;
 
     @JsonProperty("test_smells")
     private ArrayList<MethodProperty> test_smells;
@@ -27,6 +29,7 @@ public class TaskResult {
         this.numberOfAnnotationFree = 0;
         this.numberOfIgnored = 0;
         this.numberOfEmpty = 0;
+        this.numberOfFlaky = 0;
     }
 
     public void setList(ArrayList<MethodProperty> list) {
@@ -51,5 +54,9 @@ public class TaskResult {
 
     public void setNumberOfEmpty(int number) {
         this.numberOfEmpty = number;
+    }
+
+    public void setNumberOfFlaky(int numberOfFlaky) {
+        this.numberOfFlaky = numberOfFlaky;
     }
 }

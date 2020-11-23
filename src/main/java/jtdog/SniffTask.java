@@ -110,20 +110,21 @@ public class SniffTask extends DefaultTask {
         // generate result JSON file
         final TaskResult result = new TaskResult();
         final JSONWriter jw = new JSONWriter();
-        final ArrayList<MethodProperty> list = new ArrayList<>();
-        result.setList(list);
+        final ArrayList<MethodProperty> testSmellList = new ArrayList<>();
+        result.setList(testSmellList);
 
         int rotten = 0;
         int smoke = 0;
         int annotationFree = 0;
         int ignored = 0;
         int empty = 0;
+        int flaky = 0;
         // メソッドのリストから test smell を取り出す
         for (MethodIdentifier identifier : methodList.getMethodIdentifierList()) {
             MethodProperty property = methodList.getPropertyByIdentifier(identifier);
             Set<String> testSmellTypes = property.getTestSmellTypes();
             if (testSmellTypes.size() != 0) {
-                list.add(property);
+                testSmellList.add(property);
                 if (testSmellTypes.contains(MethodProperty.ROTTEN)) {
                     rotten++;
                 }
@@ -139,6 +140,9 @@ public class SniffTask extends DefaultTask {
                 if (testSmellTypes.contains(MethodProperty.EMPTY)) {
                     empty++;
                 }
+                if (testSmellTypes.contains(MethodProperty.FLAKY)) {
+                    flaky++;
+                }
             }
         }
 
@@ -147,6 +151,7 @@ public class SniffTask extends DefaultTask {
         result.setNumberOfAnnotationFree(annotationFree);
         result.setNumberOfIgnored(ignored);
         result.setNumberOfEmpty(empty);
+        result.setNumberOfFlaky(flaky);
 
         jw.writeJSONFile(result, "out", "result");
     }
