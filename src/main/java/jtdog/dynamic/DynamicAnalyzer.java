@@ -99,35 +99,19 @@ public class DynamicAnalyzer {
      */
     class CoverageMeasurementListener extends RunListener {
         private final MethodList methodList;
-        private boolean analyzeRuntimeData;
+
+        private boolean isTestSuccessful;
+        private ArrayList<String> testDefaultOrder;
+        private HashMap<String, Boolean> testResultsInDefaultOrder;
+
+        private Class<?> testClass;
 
         public CoverageMeasurementListener(final MethodList methodList) {
             this.methodList = methodList;
-            this.analyzeRuntimeData = true;
-        }
 
-        @Override
-        public void testFailure(Failure failure) throws Exception {
-            // for debug
-            System.out.println("test fail: " + failure.getMessage());
-            System.out.println("test fail class: " + failure.getDescription().getClassName());
-
-            // identify flaky test failure
-            if (rerun(RERUN_TIMES, failure.getDescription().getTestClass(), failure.getDescription().getMethodName())) {
-                // this test method is flaky
-                MethodProperty testMethodProperty = getTestMethodProperty(failure.getDescription());
-                testMethodProperty.addTestSmellType(MethodProperty.FLAKY);
-            }
-
-            // test fail = not rotten
-            analyzeRuntimeData = false;
-            super.testFailure(failure);
-        }
-
-        @Override
-        public void testIgnored(Description description) throws Exception {
-            analyzeRuntimeData = false;
-            super.testIgnored(description);
+            this.isTestSuccessful = true;
+            this.testDefaultOrder = new ArrayList<>();
+            this.testResultsInDefaultOrder = new HashMap<>();
         }
 
         @Override
@@ -136,17 +120,62 @@ public class DynamicAnalyzer {
             System.out.println(
                     "start: " + description.getMethodName() + " in " + description.getTestClass().getCanonicalName());
 
+            testClass = description.getTestClass();
+            testDefaultOrder.add(description.getMethodName());
+
             jacocoRuntimeData.reset();
-            analyzeRuntimeData = true;
+            isTestSuccessful = true;
+        }
+
+        @Override
+        public void testFailure(Failure failure) throws Exception {
+            Description description = failure.getDescription();
+
+            // for debug
+            System.out.println("test fail: " + failure.getMessage());
+            System.out.println("test fail class: " + failure.getDescription().getClassName());
+
+            testResultsInDefaultOrder.put(description.getMethodName(), false);
+
+            // identify flaky test failure
+            if (reRun(RERUN_TIMES, description.getTestClass(), description.getMethodName())) {
+                // this test method is flaky
+                MethodProperty testMethodProperty = getTestMethodProperty(description);
+                testMethodProperty.addTestSmellType(MethodProperty.FLAKY);
+            }
+
+            // test fail = not rotten
+            isTestSuccessful = false;
+            super.testFailure(failure);
+        }
+
+        @Override
+        public void testIgnored(Description description) throws Exception {
+            isTestSuccessful = false;
+            super.testIgnored(description);
         }
 
         @Override
         public void testFinished(final Description description) throws IOException {
             // for debug
             System.out.println("finish: " + description.getMethodName());
-            if (analyzeRuntimeData) {
+
+            if (isTestSuccessful) {
+                testResultsInDefaultOrder.put(description.getMethodName(), true);
                 collectRuntimeData(description);
             }
+        }
+
+        @Override
+        public void testRunFinished(Result result) throws Exception {
+            // テストクラスの全テストメソッド実行後，test dependency を調べる
+            TestDependencyDetector detector = new TestDependencyDetector(testDefaultOrder, testResultsInDefaultOrder);
+            detector.run(testClass);
+            for (String string : detector.getTestDependencies()) {
+                MethodProperty testMethodProperty = getTestMethodProperty(string);
+                testMethodProperty.addTestSmellType(MethodProperty.TEST_DEPENDENCY);
+            }
+            super.testRunFinished(result);
         }
 
         /**
@@ -156,17 +185,27 @@ public class DynamicAnalyzer {
          * @return
          */
         private MethodProperty getTestMethodProperty(final Description description) {
-            String testMethodName = getTestMethodName(description);
+            String testMethodName = getTestMethodFQN(description);
             return methodList.getPropertyByName(testMethodName);
         }
 
         /**
-         * description を基にテストメソッドの名前を取得する．
+         * テストメソッド名を基にテストメソッドのプロパティを取得する．
+         * 
+         * @param methodName
+         * @return
+         */
+        private MethodProperty getTestMethodProperty(final String methodName) {
+            return methodList.getPropertyByName(methodName);
+        }
+
+        /**
+         * description を基にテストメソッドの fqn を取得する．
          * 
          * @param description
          * @return
          */
-        private String getTestMethodName(final Description description) {
+        private String getTestMethodFQN(final Description description) {
             return description.getTestClass().getName() + "." + description.getMethodName();
         }
 
@@ -353,7 +392,7 @@ public class DynamicAnalyzer {
             return "";
         }
 
-        private boolean rerun(int numberOfTimes, Class<?> clazz, String methodName) {
+        private boolean reRun(int numberOfTimes, Class<?> clazz, String methodName) {
             JUnitCore junit = new JUnitCore();
             for (int i = 0; i < numberOfTimes; i++) {
                 Result result = junit.run(Request.method(clazz, methodName));

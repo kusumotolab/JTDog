@@ -119,6 +119,7 @@ public class SniffTask extends DefaultTask {
         int ignored = 0;
         int empty = 0;
         int flaky = 0;
+        int testDependency = 0;
         // メソッドのリストから test smell を取り出す
         for (MethodIdentifier identifier : methodList.getMethodIdentifierList()) {
             MethodProperty property = methodList.getPropertyByIdentifier(identifier);
@@ -143,6 +144,9 @@ public class SniffTask extends DefaultTask {
                 if (testSmellTypes.contains(MethodProperty.FLAKY)) {
                     flaky++;
                 }
+                if (testSmellTypes.contains(MethodProperty.TEST_DEPENDENCY)) {
+                    testDependency++;
+                }
             }
         }
 
@@ -152,6 +156,7 @@ public class SniffTask extends DefaultTask {
         result.setNumberOfIgnored(ignored);
         result.setNumberOfEmpty(empty);
         result.setNumberOfFlaky(flaky);
+        result.setNumberOfTestDependency(testDependency);
 
         jw.writeJSONFile(result, "out", "result");
     }

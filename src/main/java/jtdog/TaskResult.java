@@ -19,6 +19,8 @@ public class TaskResult {
     private int numberOfEmpty;
     @JsonProperty("flaky")
     private int numberOfFlaky;
+    @JsonProperty("test_dependency")
+    private int numberOfTestDependency;
 
     @JsonProperty("test_smells")
     private ArrayList<MethodProperty> test_smells;
@@ -30,6 +32,7 @@ public class TaskResult {
         this.numberOfIgnored = 0;
         this.numberOfEmpty = 0;
         this.numberOfFlaky = 0;
+        this.numberOfTestDependency = 0;
     }
 
     public void setList(ArrayList<MethodProperty> list) {
@@ -58,5 +61,9 @@ public class TaskResult {
 
     public void setNumberOfFlaky(int numberOfFlaky) {
         this.numberOfFlaky = numberOfFlaky;
+    }
+
+    public void setNumberOfTestDependency(int numberOfTestDependency) {
+        this.numberOfTestDependency = numberOfTestDependency;
     }
 }

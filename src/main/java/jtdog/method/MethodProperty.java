@@ -15,6 +15,8 @@ public class MethodProperty {
     public static final String ANNOTATION_FREE = "annotation_free";
     public static final String ROTTEN = "rotten";
     public static final String EMPTY = "empty";
+    public static final String FLAKY = "flaky";
+    public static final String TEST_DEPENDENCY = "test_dependency";
 
     private boolean hasAssertionDirectly;
     private boolean hasAssertionIndirectly;
