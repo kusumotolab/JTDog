@@ -13,8 +13,10 @@ import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.EnumDeclaration;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
+import org.eclipse.jdt.core.dom.IfStatement;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
+import org.eclipse.jdt.core.dom.ReturnStatement;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 
 import jtdog.method.InvocationMethod;
@@ -33,6 +35,8 @@ public class TestClassASTVisitor extends ASTVisitor {
 
     private MethodProperty activeTopMethod;
     private final String testClassName;
+
+    private boolean couldBeReturned;
 
     public TestClassASTVisitor(final MethodList methodList, final CompilationUnit unit,
             final List<String> testClassNames) {
@@ -112,6 +116,8 @@ public class TestClassASTVisitor extends ASTVisitor {
     public boolean visit(final MethodDeclaration node) {
         // コンストラクタを除外
         if (!node.isConstructor()) {
+            couldBeReturned = false;
+
             final MethodProperty property = new MethodProperty();
             final IMethodBinding methodBinding = node.resolveBinding();
             final ITypeBinding declaringClass = methodBinding.getDeclaringClass();
@@ -174,6 +180,12 @@ public class TestClassASTVisitor extends ASTVisitor {
             final IMethodBinding methodBinding = node.resolveMethodBinding();
             MethodIdentifier identifier = new MethodIdentifier(methodBinding);
             InvocationMethod invocation = new InvocationMethod(identifier, unit.getLineNumber(node.getStartPosition()));
+            if (isInIfElseStatement(node)) {
+                invocation.setIsInIfElseStatement(true);
+            }
+            if (couldBeReturned) {
+                invocation.setCouldBeSkipped(true);
+            }
             activeMethod.addInvocation(invocation);
 
             if (activeMethod != activeTopMethod && activeTopMethod != null) {
@@ -190,6 +202,26 @@ public class TestClassASTVisitor extends ASTVisitor {
 
         }
         return super.visit(node);
+    }
+
+    @Override
+    public boolean visit(ReturnStatement node) {
+        couldBeReturned = true;
+        return super.visit(node);
+    }
+
+    private boolean isInIfElseStatement(final MethodInvocation node) {
+        ASTNode parent = node.getParent();
+        while (parent != null) {
+            if (parent.getNodeType() == ASTNode.IF_STATEMENT) {
+                IfStatement ifStatement = (IfStatement) parent;
+                if (ifStatement.getElseStatement() != null) {
+                    return true;
+                }
+            }
+            parent = parent.getParent();
+        }
+        return false;
     }
 
 }

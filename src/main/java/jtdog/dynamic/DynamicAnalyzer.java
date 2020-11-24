@@ -236,7 +236,18 @@ public class DynamicAnalyzer {
 
             // 実行されていないアサーションを含む場合，rotten と判定
             if (rottenLines.size() != 0) {
-                testMethodProperty.addTestSmellType(MethodProperty.ROTTEN);
+                if (testMethodProperty.hasContextDependentRottenAssertion()) {
+                    testMethodProperty.addTestSmellType(MethodProperty.CONTEXT_DEPENDENT);
+                }
+
+                if (testMethodProperty.hasSkippedRottenAssertion()) {
+                    testMethodProperty.addTestSmellType(MethodProperty.SKIP);
+                }
+
+                if (testMethodProperty.hasFullyRottenAssertion()) {
+                    testMethodProperty.addTestSmellType(MethodProperty.ROTTEN);
+                }
+
                 for (Integer line : rottenLines) {
                     testMethodProperty.addRottenLine(line);
                 }
@@ -292,6 +303,7 @@ public class DynamicAnalyzer {
                 final String testClassName) {
             boolean hasAssertionNotExecuted = false;
 
+            // for debug
             boolean tmp = false;
             if (tmp) {
                 System.out.println(coverage.getName());
@@ -316,6 +328,7 @@ public class DynamicAnalyzer {
                     if (invocation.getMethodIdentifier().getSimpleName().startsWith("assert")) {
                         if (color.equals("red")) {
                             causeLines.add(line);
+                            setRottenProperty(property, invocation);
                             hasAssertionNotExecuted = true;
                         }
                         continue;
@@ -329,12 +342,29 @@ public class DynamicAnalyzer {
                         if (checkInvocationExecuted(classNameToCoverage.get(className), invocationProperty, causeLines,
                                 classNameToCoverage, testClassName)) {
                             causeLines.add(line);
+                            setRottenProperty(property, invocation);
                             hasAssertionNotExecuted = true;
                         }
                     }
                 }
             }
             return hasAssertionNotExecuted;
+        }
+
+        /**
+         * テストメソッドがどの種の rotten な assertion を含むかの情報を MethodProperty にセット
+         * 
+         * @param property
+         * @param invocation
+         */
+        private void setRottenProperty(MethodProperty property, InvocationMethod invocation) {
+            boolean isInIfElseStatement = invocation.isInIfElseStatement();
+            boolean isCouldBeSkipped = invocation.isCouldBeSkipped();
+            if (!isInIfElseStatement && !isCouldBeSkipped) {
+                property.setHasFullyRottenAssertion(true);
+            }
+            property.setHasContextDependentRottenAssertion(isInIfElseStatement);
+            property.setHasSkippedRottenAssertion(isCouldBeSkipped);
         }
 
         /**

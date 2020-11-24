@@ -21,6 +21,12 @@ public class TaskResult {
     private int numberOfFlaky;
     @JsonProperty("test_dependency")
     private int numberOfTestDependency;
+    @JsonProperty("rotten_context_dependent")
+    private int numberOfContextDependent;
+    @JsonProperty("rotten_missed_fail")
+    private int numberOfMissedFail;
+    @JsonProperty("rotten_skip")
+    private int numberOfSkip;
 
     @JsonProperty("test_smells")
     private ArrayList<MethodProperty> test_smells;
@@ -33,6 +39,9 @@ public class TaskResult {
         this.numberOfEmpty = 0;
         this.numberOfFlaky = 0;
         this.numberOfTestDependency = 0;
+        this.numberOfContextDependent = 0;
+        this.numberOfMissedFail = 0;
+        this.numberOfSkip = 0;
     }
 
     public void setList(ArrayList<MethodProperty> list) {
@@ -65,5 +74,17 @@ public class TaskResult {
 
     public void setNumberOfTestDependency(int numberOfTestDependency) {
         this.numberOfTestDependency = numberOfTestDependency;
+    }
+
+    public void setNumberOfContextDependent(int numberOfContextDependent) {
+        this.numberOfContextDependent = numberOfContextDependent;
+    }
+
+    public void setNumberOfMissedFail(int numberOfMissedFail) {
+        this.numberOfMissedFail = numberOfMissedFail;
+    }
+
+    public void setNumberOfSkip(int numberOfSkip) {
+        this.numberOfSkip = numberOfSkip;
     }
 }

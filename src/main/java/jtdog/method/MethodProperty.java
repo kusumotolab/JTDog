@@ -13,7 +13,10 @@ public class MethodProperty {
     public static final String IGNORED = "ignored";
     public static final String SMOKE = "smoke";
     public static final String ANNOTATION_FREE = "annotation_free";
-    public static final String ROTTEN = "rotten";
+    public static final String ROTTEN = "fully_rotten";
+    public static final String CONTEXT_DEPENDENT = "rotten_context_dependent";
+    public static final String MISSED_FAIL = "rotten_missed_fail";
+    public static final String SKIP = "rotten_skip";
     public static final String EMPTY = "empty";
     public static final String FLAKY = "flaky";
     public static final String TEST_DEPENDENCY = "test_dependency";
@@ -28,6 +31,11 @@ public class MethodProperty {
     private final List<InvocationMethod> invocationList;
     private String binaryName;
     private boolean isDeclaredInLocal;
+
+    // TODO できれば別の方法でこの情報の保存をしたい
+    private boolean hasContextDependentRottenAssertion;
+    private boolean hasSkippedRottenAssertion;
+    private boolean hasFullyRottenAssertion;
 
     @JsonProperty("test_class")
     private String className;
@@ -46,6 +54,10 @@ public class MethodProperty {
         invocationList = new ArrayList<>();
         testSmellTypes = new HashSet<>();
         rottenLines = new ArrayList<>();
+
+        this.hasContextDependentRottenAssertion = false;
+        this.hasSkippedRottenAssertion = false;
+        this.hasFullyRottenAssertion = false;
     }
 
     public boolean hasAssertionDirectly() {
@@ -134,6 +146,33 @@ public class MethodProperty {
         this.isDeclaredInLocal = isDeclaredInLocal;
     }
 
+    @JsonIgnore
+    public boolean hasContextDependentRottenAssertion() {
+        return hasContextDependentRottenAssertion;
+    }
+
+    public void setHasContextDependentRottenAssertion(boolean hasContextDependentRottenAssertion) {
+        this.hasContextDependentRottenAssertion = hasContextDependentRottenAssertion;
+    }
+
+    @JsonIgnore
+    public boolean hasSkippedRottenAssertion() {
+        return hasSkippedRottenAssertion;
+    }
+
+    public void setHasSkippedRottenAssertion(boolean hasSkippedRottenAssertion) {
+        this.hasSkippedRottenAssertion = hasSkippedRottenAssertion;
+    }
+
+    @JsonIgnore
+    public boolean hasFullyRottenAssertion() {
+        return hasFullyRottenAssertion;
+    }
+
+    public void setHasFullyRottenAssertion(boolean hasFullyRottenAssertion) {
+        this.hasFullyRottenAssertion = hasFullyRottenAssertion;
+    }
+
     /*
      * 以下は JSON プロパティ関連メソッド
      */
@@ -181,4 +220,5 @@ public class MethodProperty {
     public void setEndPosition(int endPosition) {
         this.endPosition = endPosition;
     }
+
 }
