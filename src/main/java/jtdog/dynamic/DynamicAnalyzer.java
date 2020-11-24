@@ -108,10 +108,14 @@ public class DynamicAnalyzer {
 
         public CoverageMeasurementListener(final MethodList methodList) {
             this.methodList = methodList;
-
             this.isTestSuccessful = true;
+        }
+
+        @Override
+        public void testRunStarted(Description description) throws Exception {
             this.testDefaultOrder = new ArrayList<>();
             this.testResultsInDefaultOrder = new HashMap<>();
+            super.testRunStarted(description);
         }
 
         @Override
