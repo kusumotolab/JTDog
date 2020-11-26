@@ -11,6 +11,7 @@ import org.eclipse.jdt.core.dom.AnnotationTypeDeclaration;
 import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.EnumDeclaration;
+import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.IfStatement;
@@ -186,6 +187,33 @@ public class TestClassASTVisitor extends ASTVisitor {
             if (couldBeReturned) {
                 invocation.setCouldBeSkipped(true);
             }
+
+            // missed fail か調べる
+            List<?> arguments = node.arguments();
+            Expression argument = null;
+            // 引数の数が 1 ならその引数を取り出す
+            if (arguments.size() == 1) {
+                argument = (Expression) arguments.get(0);
+                // 引数の数が 2（メッセージを含む）なら 2 つ目の引数を取り出す
+            } else if (arguments.size() == 2) {
+                argument = (Expression) arguments.get(1);
+            }
+            if (argument != null) {
+                String argumentLowerCase = argument.toString().toLowerCase();
+                String invocationIdentifier = node.getName().getIdentifier();
+                if (invocationIdentifier.equals("assertFalse")) {
+                    if (argumentLowerCase.equals("\"true\"") || argumentLowerCase.equals("true")
+                            || argumentLowerCase.equals("boolean.true")) {
+                        invocation.setIsMissedFail(true);
+                    }
+                } else if (invocationIdentifier.equals("assertTrue")) {
+                    if (argumentLowerCase.equals("\"false\"") || argumentLowerCase.equals("false")
+                            || argumentLowerCase.equals("boolean.false")) {
+                        invocation.setIsMissedFail(true);
+                    }
+                }
+            }
+
             activeMethod.addInvocation(invocation);
 
             if (activeMethod != activeTopMethod && activeTopMethod != null) {

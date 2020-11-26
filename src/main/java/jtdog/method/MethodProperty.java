@@ -36,6 +36,7 @@ public class MethodProperty {
     private boolean hasContextDependentRottenAssertion;
     private boolean hasSkippedRottenAssertion;
     private boolean hasFullyRottenAssertion;
+    private boolean hasMissedFailAssertion;
 
     @JsonProperty("test_class")
     private String className;
@@ -58,6 +59,7 @@ public class MethodProperty {
         this.hasContextDependentRottenAssertion = false;
         this.hasSkippedRottenAssertion = false;
         this.hasFullyRottenAssertion = false;
+        this.hasMissedFailAssertion = false;
     }
 
     public boolean hasAssertionDirectly() {
@@ -171,6 +173,15 @@ public class MethodProperty {
 
     public void setHasFullyRottenAssertion(boolean hasFullyRottenAssertion) {
         this.hasFullyRottenAssertion = hasFullyRottenAssertion;
+    }
+
+    @JsonIgnore
+    public boolean hasMissedFailAssertion() {
+        return hasMissedFailAssertion;
+    }
+
+    public void setHasMissedFailAssertion(boolean hasMissedFailAssertion) {
+        this.hasMissedFailAssertion = hasMissedFailAssertion;
     }
 
     /*

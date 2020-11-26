@@ -248,6 +248,10 @@ public class DynamicAnalyzer {
                     testMethodProperty.addTestSmellType(MethodProperty.ROTTEN);
                 }
 
+                if (testMethodProperty.hasMissedFailAssertion()) {
+                    testMethodProperty.addTestSmellType(MethodProperty.MISSED_FAIL);
+                }
+
                 for (Integer line : rottenLines) {
                     testMethodProperty.addRottenLine(line);
                 }
@@ -360,11 +364,13 @@ public class DynamicAnalyzer {
         private void setRottenProperty(MethodProperty property, InvocationMethod invocation) {
             boolean isInIfElseStatement = invocation.isInIfElseStatement();
             boolean isCouldBeSkipped = invocation.isCouldBeSkipped();
-            if (!isInIfElseStatement && !isCouldBeSkipped) {
+            boolean isMissedFail = invocation.isMissedFail();
+            if (!isInIfElseStatement && !isCouldBeSkipped && !isMissedFail) {
                 property.setHasFullyRottenAssertion(true);
             }
             property.setHasContextDependentRottenAssertion(isInIfElseStatement);
             property.setHasSkippedRottenAssertion(isCouldBeSkipped);
+            property.setHasMissedFailAssertion(isMissedFail);
         }
 
         /**
