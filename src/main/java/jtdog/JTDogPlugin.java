@@ -3,6 +3,8 @@
  */
 package jtdog;
 
+import java.util.Set;
+
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 
@@ -12,12 +14,28 @@ import org.gradle.api.Project;
 public class JTDogPlugin implements Plugin<Project> {
     public void apply(final Project project) {
         // Register a task
-        // 現在 compileJava や compileTestJava をルートプロジェクトのみで実行することになってる
-        // これらの task をサブプロジェクトで実行する必要がある．
-        // 一応プラグインを各サブプロジェクトで使用すれば sniff task は実行できる
+        Set<Project> subProjects = project.getSubprojects();
+
+        if (subProjects.isEmpty()) {
+            registerTasks(project, true);
+        } else {
+            for (Project subProject : subProjects) {
+                registerTasks(subProject, false);
+            }
+        }
+
+    }
+
+    private void registerTasks(Project project, Boolean isRootProject) {
+        // String sniff = getTaskName("sniff", isRootProject, project);
+        String compileJava = getTaskName("compileJava", isRootProject, project);
+        String compileTestJava = getTaskName("compileTestJava", isRootProject, project);
+        // String detectDependentTests = getTaskName("detectDependentTests",
+        // isRootProject, project);
+
         project.getTasks().register("sniff", SniffTask.class, task -> {
-            task.dependsOn("compileJava");
-            task.dependsOn("compileTestJava");
+            task.dependsOn(compileJava);
+            task.dependsOn(compileTestJava);
             task.setProject(project);
             task.setDescription("Detects Java test smells.");
             task.doLast(s -> System.out.println("Done."));
@@ -27,5 +45,9 @@ public class JTDogPlugin implements Plugin<Project> {
             task.setProject(project);
             task.setDescription("Do not use.");
         });
+    }
+
+    private String getTaskName(String taskName, Boolean isRootProject, Project project) {
+        return isRootProject ? taskName : ":" + project.getName() + ":" + taskName;
     }
 }

@@ -38,14 +38,12 @@ public class SniffTask extends DefaultTask {
 
     @TaskAction
     void sniffTaskAction() throws Exception {
-        Set<Project> subProjects = getProject().getSubprojects();
-        if (subProjects.isEmpty()) {
-            analyzeJavaTests(getProject());
-        } else {
-            for (Project subProject : subProjects) {
-                analyzeJavaTests(subProject);
-            }
-        }
+        analyzeJavaTests(getProject());
+        /*
+         * Set<Project> subProjects = getProject().getSubprojects(); if
+         * (subProjects.isEmpty()) { analyzeJavaTests(getProject()); } else { for
+         * (Project subProject : subProjects) { analyzeJavaTests(subProject); } }
+         */
     }
 
     void analyzeJavaTests(Project project) throws Exception {
