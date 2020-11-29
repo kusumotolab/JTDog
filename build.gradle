@@ -39,6 +39,11 @@ dependencies {
     implementation 'org.assertj:assertj-core:3.10.0'
 }
 
+task detectDependentTests(type:JavaExec) {
+   main = project.hasProperty("mainClass") ? getProperty("mainClass") : "NULL"
+   classpath = sourceSets.main.runtimeClasspath
+}
+
 group 'm-tanigt'
 version '0.1'
 gradlePlugin {

@@ -22,5 +22,10 @@ public class JTDogPlugin implements Plugin<Project> {
             task.setDescription("Detects Java test smells.");
             task.doLast(s -> System.out.println("Done."));
         });
+
+        project.getTasks().register("detectDependentTests", DetectDependentTestsTask.class, task -> {
+            task.setProject(project);
+            task.setDescription("Do not use.");
+        });
     }
 }

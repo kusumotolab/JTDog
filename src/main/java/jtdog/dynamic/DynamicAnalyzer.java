@@ -1,9 +1,13 @@
 package jtdog.dynamic;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -31,7 +35,7 @@ import jtdog.method.MethodList;
 import jtdog.method.MethodProperty;
 
 public class DynamicAnalyzer {
-    private final static int RERUN_TIMES = 3;
+    private final static int RERUN_TIMES = 10;
 
     private final List<String> testClassNames;
     private final List<String> testClassNamesToExecuted;
@@ -68,18 +72,84 @@ public class DynamicAnalyzer {
         }
 
         // テストクラスのロード
-        final List<Class<?>> testClasses = new ArrayList<>();
-        for (final String name : testClassNamesToExecuted) {
-            // System.out.println("name: " + name);
-            final Class<?> targetClass = memoryClassLoader.loadClass(name);
-            testClasses.add(targetClass);
-        }
+        List<Class<?>> testClasses = loadTestClasses(memoryClassLoader);
 
         // JUnit runner を使用
         final JUnitCore junit = new JUnitCore();
-        final RunListener listener = new CoverageMeasurementListener(methodList);
+        final HashMap<String, Boolean> testResultsInDefaultOrder = new HashMap<>();
+        final RunListener listener = new CoverageMeasurementListener(methodList, testResultsInDefaultOrder);
         junit.addListener(listener);
         junit.run(testClasses.toArray(new Class<?>[testClasses.size()]));
+
+        serializeObject("jtdog_tmp/testClassNamesToExecuted.ser", testClassNamesToExecuted);
+        serializeObject("jtdog_tmp/testResultsInDefaultOrder.ser", testResultsInDefaultOrder);
+
+        List<String> cmd = new ArrayList<String>();
+        cmd.add("gradle");
+        cmd.add("detectDependentTests");
+        cmd.add("--stacktrace");
+
+        Process p = Runtime.getRuntime().exec(cmd.toArray(new String[cmd.size()]));
+        // 出力ストリーム
+        new StreamThread(p.getInputStream(), "OUTPUT").start();
+        // エラーストリーム
+        new StreamThread(p.getErrorStream(), "ERROR").start();
+
+        p.waitFor();
+        p.destroy();
+        /*
+         * TestDependencyDetector detector = new
+         * TestDependencyDetector(testResultsInDefaultOrder); for (Class<?> clazz :
+         * testClasses) { detector.run(clazz); }
+         */
+        HashSet<String> dependentTests = deserializeHashMap("jtdog_tmp/dependentTests.ser");
+
+        for (String fqn : dependentTests) {
+            MethodProperty testMethodProperty = methodList.getPropertyByName(fqn);
+            if (!testMethodProperty.getTestSmellTypes().contains(MethodProperty.FLAKY)) {
+                testMethodProperty.addTestSmellType(MethodProperty.TEST_DEPENDENCY);
+            }
+        }
+
+        File tmpDirectory = new File("jtdog_tmp");
+        tmpDirectory.delete();
+
+    }
+
+    private void serializeObject(String fileName, Object object) throws IOException {
+        File file = new File(fileName);
+        file.getParentFile().mkdirs();
+        file.createNewFile();
+        FileOutputStream fileOutputStream = new FileOutputStream(file);
+        ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream);
+
+        objectOutputStream.writeObject(object);
+        objectOutputStream.flush();
+
+        objectOutputStream.close();
+        fileOutputStream.close();
+    }
+
+    @SuppressWarnings("unchecked")
+    private HashSet<String> deserializeHashMap(String fileName) throws IOException, ClassNotFoundException {
+        FileInputStream fileInputStream = new FileInputStream(fileName);
+        ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
+
+        HashSet<String> hashSet = (HashSet<String>) objectInputStream.readObject();
+
+        objectInputStream.close();
+        fileInputStream.close();
+
+        return hashSet;
+    }
+
+    private List<Class<?>> loadTestClasses(MemoryClassLoader memoryClassLoader) throws ClassNotFoundException {
+        final List<Class<?>> testClasses = new ArrayList<>();
+        for (final String name : testClassNamesToExecuted) {
+            final Class<?> targetClass = memoryClassLoader.loadClass(name);
+            testClasses.add(targetClass);
+        }
+        return testClasses;
     }
 
     /**
@@ -101,21 +171,19 @@ public class DynamicAnalyzer {
         private final MethodList methodList;
 
         private boolean isTestSuccessful;
-        private ArrayList<String> testDefaultOrder;
         private HashMap<String, Boolean> testResultsInDefaultOrder;
 
-        private Class<?> testClass;
-
-        public CoverageMeasurementListener(final MethodList methodList) {
+        public CoverageMeasurementListener(final MethodList methodList,
+                final HashMap<String, Boolean> testResultsInDefaultOrder) {
             this.methodList = methodList;
+            this.testResultsInDefaultOrder = testResultsInDefaultOrder;
             this.isTestSuccessful = true;
         }
 
         @Override
-        public void testRunStarted(Description description) throws Exception {
-            this.testDefaultOrder = new ArrayList<>();
-            this.testResultsInDefaultOrder = new HashMap<>();
-            super.testRunStarted(description);
+        public void testSuiteStarted(Description description) throws Exception {
+            testResultsInDefaultOrder.clear();
+            super.testSuiteStarted(description);
         }
 
         @Override
@@ -123,9 +191,6 @@ public class DynamicAnalyzer {
             // for debug
             System.out.println(
                     "start: " + description.getMethodName() + " in " + description.getTestClass().getCanonicalName());
-
-            testClass = description.getTestClass();
-            testDefaultOrder.add(description.getMethodName());
 
             jacocoRuntimeData.reset();
             isTestSuccessful = true;
@@ -139,7 +204,7 @@ public class DynamicAnalyzer {
             System.out.println("test fail: " + failure.getMessage());
             System.out.println("test fail class: " + failure.getDescription().getClassName());
 
-            testResultsInDefaultOrder.put(description.getMethodName(), false);
+            testResultsInDefaultOrder.put(getTestMethodFQN(description), false);
 
             // identify flaky test failure
             if (reRun(RERUN_TIMES, description.getTestClass(), description.getMethodName())) {
@@ -165,21 +230,25 @@ public class DynamicAnalyzer {
             System.out.println("finish: " + description.getMethodName());
 
             if (isTestSuccessful) {
-                testResultsInDefaultOrder.put(description.getMethodName(), true);
+                testResultsInDefaultOrder.put(getTestMethodFQN(description), true);
                 collectRuntimeData(description);
             }
         }
 
         @Override
-        public void testRunFinished(Result result) throws Exception {
+        public void testSuiteFinished(Description description) throws Exception {
             // テストクラスの全テストメソッド実行後，test dependency を調べる
-            TestDependencyDetector detector = new TestDependencyDetector(testDefaultOrder, testResultsInDefaultOrder);
-            detector.run(testClass);
-            for (String string : detector.getTestDependencies()) {
-                MethodProperty testMethodProperty = getTestMethodProperty(string);
-                testMethodProperty.addTestSmellType(MethodProperty.TEST_DEPENDENCY);
+            if (!description.getClassName().equals("classes")) {
+                /*
+                 * TestDependencyDetector detector = new
+                 * TestDependencyDetector(testResultsInDefaultOrder);
+                 * detector.run(description.getTestClass()); for (Description desc :
+                 * detector.getTestDependencies()) { MethodProperty testMethodProperty =
+                 * getTestMethodProperty(desc);
+                 * testMethodProperty.addTestSmellType(MethodProperty.TEST_DEPENDENCY); }
+                 */
             }
-            super.testRunFinished(result);
+            super.testSuiteFinished(description);
         }
 
         /**
@@ -210,7 +279,7 @@ public class DynamicAnalyzer {
          * @return
          */
         private String getTestMethodFQN(final Description description) {
-            return description.getTestClass().getName() + "." + description.getMethodName();
+            return description.getClassName() + "." + description.getMethodName();
         }
 
         /**
@@ -306,18 +375,6 @@ public class DynamicAnalyzer {
                 final HashSet<Integer> causeLines, HashMap<String, IClassCoverage> classNameToCoverage,
                 final String testClassName) {
             boolean hasAssertionNotExecuted = false;
-
-            // for debug
-            boolean tmp = false;
-            if (tmp) {
-                System.out.println(coverage.getName());
-                for (int i = coverage.getFirstLine(); i <= coverage.getLastLine(); i++) {
-                    if (!getColor(coverage.getLine(i).getStatus()).equals("")) {
-                        System.out.printf("Line %s: %s%n", Integer.valueOf(i),
-                                getColor(coverage.getLine(i).getStatus()));
-                    }
-                }
-            }
 
             // 実行されていない(color = "red" or "") invocation を含むか調べる
             for (InvocationMethod invocation : property.getInvocationList()) {

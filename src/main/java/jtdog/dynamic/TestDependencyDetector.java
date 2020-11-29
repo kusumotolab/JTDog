@@ -1,41 +1,62 @@
 package jtdog.dynamic;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.ListIterator;
+import java.util.List;
 import java.util.Random;
 
+import org.junit.runner.Description;
 import org.junit.runner.JUnitCore;
 import org.junit.runner.Request;
-import org.junit.runner.Result;
+import org.junit.runner.manipulation.Ordering;
+import org.junit.runner.notification.Failure;
+import org.junit.runner.notification.RunListener;
 
 public class TestDependencyDetector {
     private static final int SHUFFLE = 100;
-    private static final int K_BOUNDED = 2;
 
-    private final ArrayList<String> testDefaultOrder;
-    private final HashMap<String, Boolean> testResultsInDefaultOrder;
+    private HashMap<String, Boolean> testResultsInDefaultOrder;
 
-    private final HashSet<String> testDependencies;
+    private final HashSet<String> dependentTests;
 
-    public TestDependencyDetector(final ArrayList<String> testDefaultOrder,
-            final HashMap<String, Boolean> testResultsInDefaultOrder) {
-        this.testDefaultOrder = testDefaultOrder;
-        this.testResultsInDefaultOrder = testResultsInDefaultOrder;
-
-        this.testDependencies = new HashSet<>();
+    public TestDependencyDetector() {
+        this.dependentTests = new HashSet<>();
     }
 
     public HashSet<String> getTestDependencies() {
-        return testDependencies;
+        return dependentTests;
     }
 
-    //
-    public void run(final Class<?> testClass) {
-        // Reversal Algorithm
-        // runTestInSpecifiedOrder(getReversalOrder(), testClass);
+    @SuppressWarnings("unchecked")
+    public void run(MemoryClassLoader memoryClassLoader) throws Exception {
+        FileInputStream fileInputStream = new FileInputStream("jtdog_tmp/testResultsInDefaultOrder.ser");
+        ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
+        testResultsInDefaultOrder = (HashMap<String, Boolean>) objectInputStream.readObject();
+        objectInputStream.close();
+        fileInputStream.close();
 
+        fileInputStream = new FileInputStream("jtdog_tmp/testClassNamesToExecuted.ser");
+        objectInputStream = new ObjectInputStream(fileInputStream);
+        List<String> testClassNamesToExecuted = (List<String>) objectInputStream.readObject();
+        objectInputStream.close();
+        fileInputStream.close();
+
+        List<Class<?>> testClasses = loadTestClasses(memoryClassLoader, testClassNamesToExecuted);
+        for (Class<?> testClass : testClasses) {
+            run(testClass);
+        }
+        serializeObject("jtdog_tmp/dependentTests.ser", dependentTests);
+    }
+
+    private void run(final Class<?> testClass) throws Exception {
         // Randomized Algorithm
         // 自動生成テストでは最も効果的
         // そうでない場合
@@ -43,50 +64,26 @@ public class TestDependencyDetector {
         // SHUFFLE = 10 では Reversal よりは効果的
         // SHUFFLE = 100 では Reversal, Exhaustive よりも効果的
         // SHUFFLE = 1000 では他すべてよりかなり効果的
-        runTestInSpecifiedOrder(getRandomizedOrder(), testClass);
-
-        // Exhaustive Bounded Algorithm
-        // Permutation<String> permutation = new Permutation<String>(testDefaultOrder);
-        // for (ArrayList<String> list : permutation.permute(K_BOUNDED)) {
-        // runTestInSpecifiedOrder(list, testClass);
-        // }
-
-        // Dependence-Aware Bounded Algorithm
-        // not implemented
-    }
-
-    /**
-     * 指定した ArrayList の順番に従ってテストメソッドを実行していき， 結果がデフォルトの順番による実行結果と異なる場合は test
-     * dependency と判定
-     * 
-     * @param order
-     * @param testClass
-     */
-    private void runTestInSpecifiedOrder(ArrayList<String> order, Class<?> testClass) {
         JUnitCore junit = new JUnitCore();
-        for (String methodName : order) {
-            Result result = junit.run(Request.method(testClass, methodName));
-            boolean defaultResult = testResultsInDefaultOrder.get(methodName);
-
-            // デフォルトの実行順でのテスト結果と異なる場合は test dependency
-            boolean isResultDifferent = defaultResult && result.wasSuccessful() ? false : true;
-            if (isResultDifferent) {
-                testDependencies.add(methodName);
+        DependentTestDetectionListener listener = new DependentTestDetectionListener();
+        junit.addListener(listener);
+        junit.run(Request.aClass(testClass).orderWith(new Ordering() {
+            @Override
+            protected List<Description> orderItems(Collection<Description> descriptions) {
+                List<Description> ordered = getRandomizedOrder(new ArrayList<>(descriptions));
+                return ordered;
             }
-        }
+        }));
     }
 
-    /**
-     * テスト実行の順番の逆順リスト取得
-     * 
-     * @return
-     */
-    private ArrayList<String> getReversalOrder() {
-        ArrayList<String> reversalOrder = new ArrayList<>();
-        for (ListIterator<String> i = testDefaultOrder.listIterator(testDefaultOrder.size()); i.hasPrevious();) {
-            reversalOrder.add(i.previous());
+    private List<Class<?>> loadTestClasses(MemoryClassLoader memoryClassLoader, List<String> testClassNamesToExecuted)
+            throws ClassNotFoundException {
+        final List<Class<?>> testClasses = new ArrayList<>();
+        for (final String name : testClassNamesToExecuted) {
+            final Class<?> targetClass = memoryClassLoader.loadClass(name);
+            testClasses.add(targetClass);
         }
-        return reversalOrder;
+        return testClasses;
     }
 
     /**
@@ -94,73 +91,78 @@ public class TestDependencyDetector {
      * 
      * @return
      */
-    private ArrayList<String> getRandomizedOrder() {
+    private ArrayList<Description> getRandomizedOrder(ArrayList<Description> descriptions) {
         Random random = new Random();
-        final ArrayList<String> randomizedOrder = new ArrayList<>();
+        final ArrayList<Description> randomizedOrder = new ArrayList<>();
+        ArrayList<Description> temp;
         // SHUFFLE 回配列をシャッフルする
         for (int i = 0; i < SHUFFLE; i++) {
-            final ArrayList<String> remaining = new ArrayList<>(testDefaultOrder);
-            for (int j = 0; j < testDefaultOrder.size(); j++) {
+            randomizedOrder.clear();
+            final ArrayList<Description> remaining = new ArrayList<>(descriptions);
+            for (int j = 0; j < descriptions.size(); j++) {
                 final int remainingCount = remaining.size(); // 残っている要素の数
                 final int index = random.nextInt(remainingCount); // ランダムに選択されたインデックス
 
-                final String element = remaining.get(index); // ランダムに選択された要素
+                final Description element = remaining.get(index); // ランダムに選択された要素
                 randomizedOrder.add(element); // ランダムに選択された要素のリストの末尾にランダムに選択された要素を追加する。
 
                 final int lastIndex = remainingCount - 1; // 残っている要素のリストの末尾のインデックス
-                final String lastElement = remaining.remove(lastIndex); // 残っている要素のリストから末尾を削除する。
+                final Description lastElement = remaining.remove(lastIndex); // 残っている要素のリストから末尾を削除する。
                 if (index < lastIndex) { // ランダムに選択された要素が末尾以外なら…
                     remaining.set(index, lastElement); // それを末尾の要素で置換する。
                 }
             }
+            temp = new ArrayList<>(randomizedOrder);
         }
 
         return randomizedOrder;
     }
 
-    class Permutation<E> {
-        int count;
-        ArrayList<E> original;
-        ArrayList<ArrayList<E>> list;
+    private void serializeObject(String fileName, Object object) throws IOException {
+        File file = new File(fileName);
+        file.getParentFile().mkdirs();
+        file.createNewFile();
+        FileOutputStream fileOutputStream = new FileOutputStream(file);
+        ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream);
 
-        Permutation(ArrayList<E> original) {
-            this.original = new ArrayList<>(original);
-            this.list = new ArrayList<ArrayList<E>>();
-        }
+        objectOutputStream.writeObject(object);
+        objectOutputStream.flush();
 
-        public ArrayList<ArrayList<E>> permute(int k) {
-            ArrayList<E> newOne = new ArrayList<E>();
-            permute(newOne, original, k);
-            return list;
-        }
-
-        private void permute(ArrayList<E> newOne, ArrayList<E> originalOne, int k) {
-            int n = originalOne.size();
-            if (newOne.size() == k) {
-                list.add(newOne);
-                return;
-            }
-
-            for (int i = 0; i < n; i++) {
-                ArrayList<E> newList = addItem(originalOne.get(i), newOne);
-                ArrayList<E> originalList = removeItem(i, originalOne);
-                permute(newList, originalList, k);
-            }
-        }
-
-        private ArrayList<E> addItem(E item, ArrayList<E> newOne) {
-            ArrayList<E> list = new ArrayList<E>();
-            list.addAll(newOne);
-            list.add(item);
-            return list;
-        }
-
-        private ArrayList<E> removeItem(int index, ArrayList<E> original) {
-            ArrayList<E> list = new ArrayList<E>();
-            list.addAll(original);
-            list.remove(index);
-            return list;
-        }
+        objectOutputStream.close();
+        fileOutputStream.close();
     }
 
+    class DependentTestDetectionListener extends RunListener {
+        private boolean wasTestSuccessful;
+
+        @Override
+        public void testStarted(Description description) throws Exception {
+            // 初期化
+            wasTestSuccessful = true;
+            super.testStarted(description);
+        }
+
+        @Override
+        public void testFailure(Failure failure) throws Exception {
+            wasTestSuccessful = false;
+            System.out.println("failed in " + failure.getDescription().getMethodName() + ": " + failure.getMessage());
+            super.testFailure(failure);
+        }
+
+        @Override
+        public void testFinished(Description description) throws Exception {
+            boolean defaultResult = testResultsInDefaultOrder.get(getTestMethodFQN(description));
+
+            // デフォルトの実行順でのテスト結果と異なる場合は test dependency
+            boolean isResultDifferent = defaultResult == wasTestSuccessful ? false : true;
+            if (isResultDifferent) {
+                dependentTests.add(getTestMethodFQN(description));
+            }
+            super.testFinished(description);
+        }
+
+        private String getTestMethodFQN(final Description description) {
+            return description.getClassName() + "." + description.getMethodName();
+        }
+    }
 }
