@@ -38,7 +38,8 @@ public class SniffTask extends DefaultTask {
 
     @TaskAction
     void sniffTaskAction() throws Exception {
-        analyzeJavaTests(getProject());
+        boolean isRootProject = getProject().getSubprojects().isEmpty() ? true : false;
+        analyzeJavaTests(getProject(), isRootProject);
         /*
          * Set<Project> subProjects = getProject().getSubprojects(); if
          * (subProjects.isEmpty()) { analyzeJavaTests(getProject()); } else { for
@@ -46,7 +47,7 @@ public class SniffTask extends DefaultTask {
          */
     }
 
-    void analyzeJavaTests(Project project) throws Exception {
+    void analyzeJavaTests(Project project, Boolean isRootProject) throws Exception {
         final MethodList methodList = new MethodList();
 
         SourceSet mainSourceSet = project.getConvention().getPlugin(JavaPluginConvention.class).getSourceSets()
@@ -96,14 +97,19 @@ public class SniffTask extends DefaultTask {
                 testClassesDirPath = dir.getAbsolutePath();
             }
         } else {
-            loader.close();
-            throw new Exception();
+            for (File dir : testClassesDirs) {
+                if (dir.getAbsolutePath().contains("/java/")) {
+                    testClassesDirPath = dir.getAbsolutePath();
+                    break;
+                }
+            }
         }
 
         // 動的解析
         final DynamicAnalyzer da = new DynamicAnalyzer(sa.getTestClassNames(), sa.getTestClassNamesToExecuted(),
                 testClassesDirPath);
-        da.run(methodList, loader);
+        String projectName = isRootProject ? null : getProject().getName();
+        da.run(methodList, loader, projectName);
 
         // generate result JSON file
         final TaskResult result = new TaskResult();

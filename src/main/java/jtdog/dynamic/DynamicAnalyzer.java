@@ -62,7 +62,8 @@ public class DynamicAnalyzer {
     }
 
     // テスト以外のクラスも instrumenter を適用すべき？
-    public void run(final MethodList methodList, final MemoryClassLoader memoryClassLoader) throws Exception {
+    public void run(final MethodList methodList, final MemoryClassLoader memoryClassLoader, final String projectName)
+            throws Exception {
         // テストクラスすべてに instrumenter を適用
         for (String testClassName : testClassNames) {
             final InputStream original = getTargetClass(testClassName);
@@ -86,7 +87,8 @@ public class DynamicAnalyzer {
 
         List<String> cmd = new ArrayList<String>();
         cmd.add("gradle");
-        cmd.add("detectDependentTests");
+        String taskName = (projectName == null) ? "detectDependentTest" : projectName + ":detectDependentTest";
+        cmd.add(taskName);
         cmd.add("--stacktrace");
 
         Process p = Runtime.getRuntime().exec(cmd.toArray(new String[cmd.size()]));
