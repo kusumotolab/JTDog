@@ -28,15 +28,17 @@ dependencies {
     testImplementation group: 'junit', name: 'junit', version: '4.13'
 
     // https://mvnrepository.com/artifact/org.eclipse.jdt/org.eclipse.jdt.core
-    implementation group: 'org.eclipse.jdt', name: 'org.eclipse.jdt.core', version: '3.22.0'
+    implementation group: 'org.eclipse.jdt', name: 'org.eclipse.jdt.core', version: '3.23.0'
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind
     implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.11.2'
     // https://mvnrepository.com/artifact/junit/junit
     implementation group: 'junit', name: 'junit', version: '4.13'
+    // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter
+    implementation group: 'org.junit.jupiter', name: 'junit-jupiter', version: '5.7.0'
+
 
     implementation 'org.jacoco:org.jacoco.core:0.8.5'
 
-    implementation 'org.assertj:assertj-core:3.10.0'
 }
 
 group 'm-tanigt'
