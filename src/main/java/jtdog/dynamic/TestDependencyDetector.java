@@ -21,8 +21,6 @@ import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
 
 public class TestDependencyDetector {
-    private static final int SHUFFLE = 100;
-
     private HashMap<String, Boolean> testResultsInDefaultOrder;
 
     private final HashSet<String> dependentTests;
@@ -94,25 +92,20 @@ public class TestDependencyDetector {
     private ArrayList<Description> getRandomizedOrder(ArrayList<Description> descriptions) {
         Random random = new Random();
         final ArrayList<Description> randomizedOrder = new ArrayList<>();
-        ArrayList<Description> temp;
         // SHUFFLE 回配列をシャッフルする
-        for (int i = 0; i < SHUFFLE; i++) {
-            randomizedOrder.clear();
-            final ArrayList<Description> remaining = new ArrayList<>(descriptions);
-            for (int j = 0; j < descriptions.size(); j++) {
-                final int remainingCount = remaining.size(); // 残っている要素の数
-                final int index = random.nextInt(remainingCount); // ランダムに選択されたインデックス
+        final ArrayList<Description> remaining = new ArrayList<>(descriptions);
+        for (int j = 0; j < descriptions.size(); j++) {
+            final int remainingCount = remaining.size(); // 残っている要素の数
+            final int index = random.nextInt(remainingCount); // ランダムに選択されたインデックス
 
-                final Description element = remaining.get(index); // ランダムに選択された要素
-                randomizedOrder.add(element); // ランダムに選択された要素のリストの末尾にランダムに選択された要素を追加する。
+            final Description element = remaining.get(index); // ランダムに選択された要素
+            randomizedOrder.add(element); // ランダムに選択された要素のリストの末尾にランダムに選択された要素を追加する。
 
-                final int lastIndex = remainingCount - 1; // 残っている要素のリストの末尾のインデックス
-                final Description lastElement = remaining.remove(lastIndex); // 残っている要素のリストから末尾を削除する。
-                if (index < lastIndex) { // ランダムに選択された要素が末尾以外なら…
-                    remaining.set(index, lastElement); // それを末尾の要素で置換する。
-                }
+            final int lastIndex = remainingCount - 1; // 残っている要素のリストの末尾のインデックス
+            final Description lastElement = remaining.remove(lastIndex); // 残っている要素のリストから末尾を削除する。
+            if (index < lastIndex) { // ランダムに選択された要素が末尾以外なら…
+                remaining.set(index, lastElement); // それを末尾の要素で置換する。
             }
-            temp = new ArrayList<>(randomizedOrder);
         }
 
         return randomizedOrder;
@@ -122,7 +115,7 @@ public class TestDependencyDetector {
         File file = new File(fileName);
         file.getParentFile().mkdirs();
         file.createNewFile();
-        FileOutputStream fileOutputStream = new FileOutputStream(file);
+        FileOutputStream fileOutputStream = new FileOutputStream(file, false);
         ObjectOutputStream objectOutputStream = new ObjectOutputStream(fileOutputStream);
 
         objectOutputStream.writeObject(object);

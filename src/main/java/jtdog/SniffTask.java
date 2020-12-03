@@ -27,6 +27,8 @@ import jtdog.method.MethodProperty;
 public class SniffTask extends DefaultTask {
     @Input
     private Project project;
+    @Input
+    private boolean isRootProject;
 
     public Project getProject() {
         return project;
@@ -36,10 +38,17 @@ public class SniffTask extends DefaultTask {
         this.project = project;
     }
 
+    public boolean isRootProject() {
+        return isRootProject;
+    }
+
+    public void setIsRootProject(final boolean isRootProject) {
+        this.isRootProject = isRootProject;
+    }
+
     @TaskAction
     void sniffTaskAction() throws Exception {
-        boolean isRootProject = getProject().getSubprojects().isEmpty() ? true : false;
-        analyzeJavaTests(getProject(), isRootProject);
+        analyzeJavaTests(getProject());
         /*
          * Set<Project> subProjects = getProject().getSubprojects(); if
          * (subProjects.isEmpty()) { analyzeJavaTests(getProject()); } else { for
@@ -47,7 +56,7 @@ public class SniffTask extends DefaultTask {
          */
     }
 
-    void analyzeJavaTests(Project project, Boolean isRootProject) throws Exception {
+    void analyzeJavaTests(Project project) throws Exception {
         final MethodList methodList = new MethodList();
 
         SourceSet mainSourceSet = project.getConvention().getPlugin(JavaPluginConvention.class).getSourceSets()
@@ -78,6 +87,7 @@ public class SniffTask extends DefaultTask {
         Set<File> mainClassesDirs = mainOutput.getClassesDirs().getFiles();
 
         for (File dir : mainClassesDirs) {
+            System.out.println("main: " + dir.getAbsolutePath());
             classPaths.add(new File(dir.getAbsolutePath()));
         }
 
@@ -94,10 +104,12 @@ public class SniffTask extends DefaultTask {
         // テストクラスのビルド時の生成ファイルを出力するディレクトリが複数の場合はとりあえず解析不可能としておく
         if (testClassesDirs.size() == 1) {
             for (File dir : testClassesDirs) {
+                System.out.println("test: " + dir.getAbsolutePath());
                 testClassesDirPath = dir.getAbsolutePath();
             }
         } else {
             for (File dir : testClassesDirs) {
+                System.out.println("test: " + dir.getAbsolutePath());
                 if (dir.getAbsolutePath().contains("/java/")) {
                     testClassesDirPath = dir.getAbsolutePath();
                     break;
@@ -108,7 +120,7 @@ public class SniffTask extends DefaultTask {
         // 動的解析
         final DynamicAnalyzer da = new DynamicAnalyzer(sa.getTestClassNames(), sa.getTestClassNamesToExecuted(),
                 testClassesDirPath);
-        String projectName = isRootProject ? null : getProject().getName();
+        String projectName = isRootProject() ? null : getProject().getName();
         da.run(methodList, loader, projectName);
 
         // generate result JSON file
@@ -177,6 +189,6 @@ public class SniffTask extends DefaultTask {
         result.setNumberOfMissedFail(missedFail);
         result.setNumberOfSkip(skip);
 
-        jw.writeJSONFile(result, "out", "result");
+        jw.writeJSONFile(result, "out", project.getName() + "_result");
     }
 }

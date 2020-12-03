@@ -49,7 +49,7 @@ public class StaticAnalyzer {
             final ASTParser parser = ASTParser.newParser(AST.JLS14);
 
             final Map<String, String> options = JavaCore.getOptions();
-            JavaCore.setComplianceOptions(JavaCore.VERSION_11, options);
+            JavaCore.setComplianceOptions(JavaCore.VERSION_14, options);
             parser.setCompilerOptions(options);
             // for resolve bindings
             parser.setResolveBindings(true);

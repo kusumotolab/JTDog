@@ -37,6 +37,7 @@ public class JTDogPlugin implements Plugin<Project> {
             task.dependsOn(compileJava);
             task.dependsOn(compileTestJava);
             task.setProject(project);
+            task.setIsRootProject(isRootProject);
             task.setDescription("Detects Java test smells.");
             task.doLast(s -> System.out.println("Done."));
         });

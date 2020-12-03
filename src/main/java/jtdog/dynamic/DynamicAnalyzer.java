@@ -36,6 +36,7 @@ import jtdog.method.MethodProperty;
 
 public class DynamicAnalyzer {
     private final static int RERUN_TIMES = 10;
+    private final static int RANDOMIZED_TRIALS = 50;
 
     private final List<String> testClassNames;
     private final List<String> testClassNamesToExecuted;
@@ -85,26 +86,26 @@ public class DynamicAnalyzer {
         serializeObject("jtdog_tmp/testClassNamesToExecuted.ser", testClassNamesToExecuted);
         serializeObject("jtdog_tmp/testResultsInDefaultOrder.ser", testResultsInDefaultOrder);
 
-        List<String> cmd = new ArrayList<String>();
-        cmd.add("gradle");
-        String taskName = (projectName == null) ? "detectDependentTest" : projectName + ":detectDependentTest";
-        cmd.add(taskName);
-        cmd.add("--stacktrace");
+        HashSet<String> dependentTests = new HashSet<>();
+        // ランダムな順番でテスト実行を繰り返す
+        for (int i = 0; i < RANDOMIZED_TRIALS; i++) {
+            List<String> cmd = new ArrayList<String>();
+            cmd.add("gradle");
+            String taskName = (projectName == null) ? "detectDependentTest" : projectName + ":detectDependentTest";
+            cmd.add(taskName);
+            // cmd.add("--stacktrace");
 
-        Process p = Runtime.getRuntime().exec(cmd.toArray(new String[cmd.size()]));
-        // 出力ストリーム
-        new StreamThread(p.getInputStream(), "OUTPUT").start();
-        // エラーストリーム
-        new StreamThread(p.getErrorStream(), "ERROR").start();
+            Process p = Runtime.getRuntime().exec(cmd.toArray(new String[cmd.size()]));
+            // 出力ストリーム
+            new StreamThread(p.getInputStream(), "OUTPUT").start();
+            // エラーストリーム
+            new StreamThread(p.getErrorStream(), "ERROR").start();
 
-        p.waitFor();
-        p.destroy();
-        /*
-         * TestDependencyDetector detector = new
-         * TestDependencyDetector(testResultsInDefaultOrder); for (Class<?> clazz :
-         * testClasses) { detector.run(clazz); }
-         */
-        HashSet<String> dependentTests = deserializeHashMap("jtdog_tmp/dependentTests.ser");
+            p.waitFor();
+            p.destroy();
+
+            dependentTests.addAll(deserializeHashMap("jtdog_tmp/dependentTests.ser"));
+        }
 
         for (String fqn : dependentTests) {
             MethodProperty testMethodProperty = methodList.getPropertyByName(fqn);
@@ -114,8 +115,23 @@ public class DynamicAnalyzer {
         }
 
         File tmpDirectory = new File("jtdog_tmp");
-        tmpDirectory.delete();
+        recursiveDeleteFile(tmpDirectory);
 
+    }
+
+    private void recursiveDeleteFile(final File file) throws Exception {
+        // 存在しない場合は処理終了
+        if (!file.exists()) {
+            return;
+        }
+        // 対象がディレクトリの場合は再帰処理
+        if (file.isDirectory()) {
+            for (File child : file.listFiles()) {
+                recursiveDeleteFile(child);
+            }
+        }
+        // 対象がファイルもしくは配下が空のディレクトリの場合は削除する
+        file.delete();
     }
 
     private void serializeObject(String fileName, Object object) throws IOException {
