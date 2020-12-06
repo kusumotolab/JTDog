@@ -2,6 +2,7 @@ package jtdog;
 
 import java.io.File;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.Set;
 
 import org.gradle.api.DefaultTask;
@@ -12,7 +13,6 @@ import org.gradle.api.tasks.SourceSet;
 import org.gradle.api.tasks.SourceSetOutput;
 import org.gradle.api.tasks.TaskAction;
 
-import jtdog.dynamic.MemoryClassLoader;
 import jtdog.dynamic.TestDependencyDetector;
 import jtdog.file.FileReader;
 import jtdog.file.FileSetConverter;
@@ -36,7 +36,14 @@ public class DetectDependentTestsTask extends DefaultTask {
         SourceSet testSourceSet = getProject().getConvention().getPlugin(JavaPluginConvention.class).getSourceSets()
                 .getByName("test");
 
-        final Set<File> classPaths = FileReader.getExternalJarFiles(project);
+        boolean isJUnit5;
+        if (getProject().hasProperty("junit5")) {
+            isJUnit5 = getProject().findProperty("junit5").equals("true") ? true : false;
+        } else {
+            isJUnit5 = false;
+        }
+
+        final Set<File> classPaths = FileReader.getExternalJarFiles(getProject());
         // classpath にソースファイルのパスを追加
         SourceSetOutput mainOutput = mainSourceSet.getOutput();
         Set<File> mainClassesDirs = mainOutput.getClassesDirs().getFiles();
@@ -48,11 +55,13 @@ public class DetectDependentTestsTask extends DefaultTask {
         for (File dir : testClassesDirs) {
             classPaths.add(new File(dir.getAbsolutePath()));
         }
+
         URL[] urls = FileSetConverter.toURLs(classPaths);
         ClassLoader parent = DetectDependentTestsTask.class.getClassLoader();
-        final MemoryClassLoader loader = new MemoryClassLoader(urls, parent);
+        final URLClassLoader loader = new URLClassLoader(urls, parent);
+
         TestDependencyDetector detector = new TestDependencyDetector();
-        detector.run(loader);
+        detector.run(loader, isJUnit5);
 
     }
 }

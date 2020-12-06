@@ -49,11 +49,6 @@ public class SniffTask extends DefaultTask {
     @TaskAction
     void sniffTaskAction() throws Exception {
         analyzeJavaTests(getProject());
-        /*
-         * Set<Project> subProjects = getProject().getSubprojects(); if
-         * (subProjects.isEmpty()) { analyzeJavaTests(getProject()); } else { for
-         * (Project subProject : subProjects) { analyzeJavaTests(subProject); } }
-         */
     }
 
     void analyzeJavaTests(Project project) throws Exception {
@@ -68,6 +63,14 @@ public class SniffTask extends DefaultTask {
         final Set<File> classPaths = FileReader.getExternalJarFiles(project);
         final String[] externalJarFilePaths = FileSetConverter.toAbsolutePathArray(classPaths);
 
+        // property により JUnit5 かどうか判断
+        boolean isJUnit5;
+        if (project.hasProperty("junit5")) {
+            isJUnit5 = project.findProperty("junit5").equals("true") ? true : false;
+        } else {
+            isJUnit5 = false;
+        }
+
         // 解析するソースコードのパス
         final Set<File> testSourceFiles = testSourceSet.getJava().getFiles();
         final String[] sources = FileSetConverter.toAbsolutePathArray(testSourceFiles);
@@ -80,7 +83,7 @@ public class SniffTask extends DefaultTask {
 
         // 静的解析
         final StaticAnalyzer sa = new StaticAnalyzer(sources, sourcepathDirs, externalJarFilePaths);
-        sa.run(methodList);
+        sa.run(methodList, isJUnit5);
 
         // classpath にソースファイルのパスを追加
         SourceSetOutput mainOutput = mainSourceSet.getOutput();
@@ -93,7 +96,7 @@ public class SniffTask extends DefaultTask {
 
         // URLClassLoader 生成
         URL[] urls = FileSetConverter.toURLs(classPaths);
-        ClassLoader parent = DynamicAnalyzer.class.getClassLoader();
+        ClassLoader parent = SniffTask.class.getClassLoader();
         final MemoryClassLoader loader = new MemoryClassLoader(urls, parent);
 
         String testClassesDirPath = "";
@@ -121,7 +124,7 @@ public class SniffTask extends DefaultTask {
         final DynamicAnalyzer da = new DynamicAnalyzer(sa.getTestClassNames(), sa.getTestClassNamesToExecuted(),
                 testClassesDirPath);
         String projectName = isRootProject() ? null : getProject().getName();
-        da.run(methodList, loader, projectName);
+        da.run(methodList, loader, projectName, isJUnit5);
 
         // generate result JSON file
         final TaskResult result = new TaskResult();

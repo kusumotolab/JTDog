@@ -30,6 +30,7 @@ public class TestClassASTVisitor extends ASTVisitor {
     private final MethodList methodList;
     private final CompilationUnit unit;
     private List<String> testClassNames;
+    private final boolean isJUnit5;
 
     private MethodProperty activeMethod; // 訪問中のメソッド呼び出しのスコープ解決用
     private MethodProperty previousActiveMethod; // ローカルクラス対策
@@ -40,10 +41,11 @@ public class TestClassASTVisitor extends ASTVisitor {
     private boolean couldBeReturned;
 
     public TestClassASTVisitor(final MethodList methodList, final CompilationUnit unit,
-            final List<String> testClassNames) {
+            final List<String> testClassNames, final boolean isJUnit5) {
         this.methodList = methodList;
         this.unit = unit;
         this.testClassNames = testClassNames;
+        this.isJUnit5 = isJUnit5;
 
         final AbstractTypeDeclaration dec = (AbstractTypeDeclaration) unit.types().get(0);
         final ITypeBinding bind = dec.resolveBinding();
@@ -133,14 +135,22 @@ public class TestClassASTVisitor extends ASTVisitor {
 
             Pattern test = Pattern.compile("^@Test");
             final boolean hasTestAnnotation = modifierList.stream().anyMatch(e -> test.matcher(e).find());
-            Pattern ignore = Pattern.compile("^@Ignore");
+            Pattern ignore = isJUnit5 ? Pattern.compile("^@Disabled") : Pattern.compile("^@Ignore");
             final boolean hasIgnoreAnnotation = modifierList.stream().anyMatch(e -> ignore.matcher(e).find());
-            final boolean isInvoked = modifierList.contains("@Before") | modifierList.contains("@After")
-                    | modifierList.contains("@BeforeClass") | modifierList.contains("@AfterClass") ? true : false;
-
-            // JUnit4 におけるテストメソッドの条件（@Test を除く）
-            final boolean isMaybeTestMethod = (modifierList.contains("public")
-                    && node.getReturnType2().toString().equals("void") && node.parameters().size() == 0) ? true : false;
+            final boolean isInvoked;
+            final boolean isMaybeTestMethod;
+            if (isJUnit5) {
+                isInvoked = modifierList.contains("@BeforeEach") | modifierList.contains("@AfterEach")
+                        | modifierList.contains("@BeforeAll") | modifierList.contains("@AfterAll") ? true : false;
+                isMaybeTestMethod = (node.getReturnType2().toString().equals("void") && node.parameters().size() == 0)
+                        ? true
+                        : false;
+            } else {
+                isInvoked = modifierList.contains("@Before") | modifierList.contains("@After")
+                        | modifierList.contains("@BeforeClass") | modifierList.contains("@AfterClass") ? true : false;
+                isMaybeTestMethod = (modifierList.contains("public") && node.getReturnType2().toString().equals("void")
+                        && node.parameters().size() == 0) ? true : false;
+            }
 
             // MethodProperty を設定
             property.setHasAssertionDirectly(false); // この段階ではアサーションを含むか不明のため
@@ -194,9 +204,9 @@ public class TestClassASTVisitor extends ASTVisitor {
             // 引数の数が 1 ならその引数を取り出す
             if (arguments.size() == 1) {
                 argument = (Expression) arguments.get(0);
-                // 引数の数が 2（メッセージを含む）なら 2 つ目の引数を取り出す
+                // 引数の数が 2（メッセージを含む）なら メッセージでない引数を取り出す
             } else if (arguments.size() == 2) {
-                argument = (Expression) arguments.get(1);
+                argument = isJUnit5 ? (Expression) arguments.get(0) : (Expression) arguments.get(1);
             }
             if (argument != null) {
                 String argumentLowerCase = argument.toString().toLowerCase();

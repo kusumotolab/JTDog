@@ -42,7 +42,7 @@ public class StaticAnalyzer {
      * @param testSmells : list to save the analysis results.
      * @throws IOException
      */
-    public void run(final MethodList methodList) throws IOException {
+    public void run(final MethodList methodList, final boolean isJUnit5) throws IOException {
 
         for (String source : sources) {
             // 解析器の生成
@@ -66,7 +66,7 @@ public class StaticAnalyzer {
                 testClassNamesToExecuted.add(bind.getBinaryName());
                 System.out.println("unit: " + bind.getBinaryName());
 
-                final TestClassASTVisitor visitor = new TestClassASTVisitor(methodList, unit, testClassNames);
+                final TestClassASTVisitor visitor = new TestClassASTVisitor(methodList, unit, testClassNames, isJUnit5);
                 unit.accept(visitor);
             }
         }
