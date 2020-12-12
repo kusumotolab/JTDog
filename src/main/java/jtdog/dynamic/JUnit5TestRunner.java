@@ -30,6 +30,7 @@ import org.junit.platform.launcher.TestIdentifier;
 import org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder;
 import org.junit.platform.launcher.core.LauncherFactory;
 
+import jtdog.file.CoverageWriter;
 import jtdog.file.ObjectSerializer;
 import jtdog.method.InvocationMethod;
 import jtdog.method.MethodList;
@@ -52,7 +53,8 @@ public class JUnit5TestRunner {
         final HashMap<String, ArrayList<String>> testClassNameToDefaultExecutionOrder = new HashMap<>();
 
         LauncherDiscoveryRequest request = LauncherDiscoveryRequestBuilder.request()
-                .selectors(getTestClasses(testClasses)).build();
+                .selectors(getTestClasses(testClasses))
+                .configurationParameter("junit.jupiter.extensions.autodetection.enabled", "true").build();
         Launcher launcher = LauncherFactory.create();
 
         TestExecutionListener listener = new CoverageMeasurementListener(methodList, testResultsInDefaultOrder,
@@ -87,8 +89,9 @@ public class JUnit5TestRunner {
 
         @Override
         public void executionStarted(TestIdentifier testIdentifier) {
-            System.out.println(
-                    "start: " + testIdentifier.getDisplayName() + " unique_id " + testIdentifier.getUniqueId());
+            // System.out.println(
+            // "start: " + testIdentifier.getDisplayName() + " unique_id " +
+            // testIdentifier.getUniqueId());
 
             jacocoRuntimeData.reset();
             TestExecutionListener.super.executionStarted(testIdentifier);
@@ -97,10 +100,9 @@ public class JUnit5TestRunner {
         @Override
         public void executionFinished(TestIdentifier testIdentifier, TestExecutionResult testExecutionResult) {
             try {
-
                 MethodSource source = (MethodSource) testIdentifier.getSource().get();
                 String testClassName = source.getClassName();
-                System.out.println("finish: " + testClassName);
+                System.out.println("finish: " + source.getMethodName() + " in " + testClassName);
                 if (testClassNameToDefaultExecutionOrder.containsKey(testClassName)) {
                     testClassNameToDefaultExecutionOrder.get(testClassName).add(source.getMethodName());
                 } else {
@@ -126,7 +128,7 @@ public class JUnit5TestRunner {
                     reRun(RERUN_TIMES, source.getJavaClass(), source.getMethodName());
                 }
             } catch (Exception e) {
-                System.out.println("error: " + e.getClass().getName());
+
             }
             TestExecutionListener.super.executionFinished(testIdentifier, testExecutionResult);
         }
@@ -149,11 +151,25 @@ public class JUnit5TestRunner {
             MethodProperty testMethodProperty = getTestMethodProperty(testIdentifier);
             for (IClassCoverage coverage : coverages) {
                 String testClassName = coverage.getName().replace("/", ".");
-                checkInvocationExecuted(coverage, testMethodProperty, rottenLines, classNameToCoverage, testClassName);
+                for (int i = coverage.getFirstLine(); i <= coverage.getLastLine(); i++) {
+                    if (!getColor(coverage.getLine(i).getStatus()).equals("")) {
+                        CoverageWriter.write("Line " + Integer.valueOf(i) + ": "
+                                + getColor(coverage.getLine(i).getStatus()) + " in " + testClassName,
+                                getTestMethodFQN(testIdentifier));
+                    }
+                }
+                // checkInvocationExecuted(coverage, testMethodProperty, rottenLines,
+                // classNameToCoverage, testClassName);
             }
+            MethodSource source = (MethodSource) testIdentifier.getSource().get();
+            IClassCoverage coverage = classNameToCoverage.get(source.getClassName());
+            String testClassName = coverage.getName().replace("/", ".");
+            checkInvocationExecuted(coverage, testMethodProperty, rottenLines, classNameToCoverage, testClassName);
 
             // 実行されていないアサーションを含む場合，rotten と判定
             if (rottenLines.size() != 0) {
+                setTestMethodRottenProperty(testMethodProperty);
+
                 if (testMethodProperty.hasContextDependentRottenAssertion()) {
                     testMethodProperty.addTestSmellType(MethodProperty.CONTEXT_DEPENDENT);
                 }
@@ -272,6 +288,10 @@ public class JUnit5TestRunner {
             // 実行されていない(color = "red" or "") invocation を含むか調べる
             for (InvocationMethod invocation : property.getInvocationList()) {
                 int line = invocation.getLineNumber();
+
+                CoverageWriter.write("invoked " + invocation.getMethodIdentifier().getBinaryName() + " in line " + line,
+                        property.getBinaryName() + "-lines");
+
                 String color = getColor(coverage.getLine(line).getStatus());
                 // helper かどうか調べるため，isInvoke の値をセット
                 MethodProperty invocationProperty = methodList
@@ -281,7 +301,16 @@ public class JUnit5TestRunner {
                     // 実行されていないアサーションの場合
                     if (invocation.getMethodIdentifier().getSimpleName().startsWith("assert")) {
                         if (color.equals("red")) {
-                            causeLines.add(line);
+                            if (coverage.getName().replace("/", ".").startsWith(testClassName)) {
+                                causeLines.add(line);
+                            }
+                            setRottenProperty(property, invocation);
+                            hasAssertionNotExecuted = true;
+                        } else if (color.equals("")
+                                && checkInvocationInLocalExecuted(classNameToCoverage, testClassName, line)) {
+                            if (coverage.getName().replace("/", ".").startsWith(testClassName)) {
+                                causeLines.add(line);
+                            }
                             setRottenProperty(property, invocation);
                             hasAssertionNotExecuted = true;
                         }
@@ -295,7 +324,9 @@ public class JUnit5TestRunner {
                         String className = invocationProperty.getClassName();
                         if (checkInvocationExecuted(classNameToCoverage.get(className), invocationProperty, causeLines,
                                 classNameToCoverage, testClassName)) {
-                            causeLines.add(line);
+                            if (coverage.getName().replace("/", ".").startsWith(testClassName)) {
+                                causeLines.add(line);
+                            }
                             setRottenProperty(property, invocation);
                             hasAssertionNotExecuted = true;
                         }
@@ -303,6 +334,18 @@ public class JUnit5TestRunner {
                 }
             }
             return hasAssertionNotExecuted;
+        }
+
+        private boolean checkInvocationInLocalExecuted(HashMap<String, IClassCoverage> classNameToCoverage,
+                final String testClassName, final int line) {
+            for (String name : classNameToCoverage.keySet()) {
+                if (!name.equals(testClassName) && name.startsWith(testClassName)) {
+                    if (getColor(classNameToCoverage.get(name).getLine(line).getStatus()).equals("red")) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         /**
@@ -315,12 +358,81 @@ public class JUnit5TestRunner {
             boolean isInIfElseStatement = invocation.isInIfElseStatement();
             boolean isCouldBeSkipped = invocation.isCouldBeSkipped();
             boolean isMissedFail = invocation.isMissedFail();
-            if (!isInIfElseStatement && !isCouldBeSkipped && !isMissedFail) {
-                property.setHasFullyRottenAssertion(true);
-            }
             property.setHasContextDependentRottenAssertion(isInIfElseStatement);
             property.setHasSkippedRottenAssertion(isCouldBeSkipped);
             property.setHasMissedFailAssertion(isMissedFail);
+        }
+
+        private void setTestMethodRottenProperty(MethodProperty property) {
+            for (InvocationMethod invocation : property.getInvocationList()) {
+                MethodProperty invocationProperty = methodList
+                        .getPropertyByIdentifier(invocation.getMethodIdentifier());
+                if (invocationProperty != null) {
+                    // context dependent
+                    if (!property.hasContextDependentRottenAssertion()
+                            && hasContextDependentRottenAssertionInHelper(property)) {
+                        property.setHasContextDependentRottenAssertion(true);
+                    }
+                    // missed fail
+                    if (!property.hasMissedFailAssertion() && hasMissedFailAssertionInHelper(property)) {
+                        property.setHasMissedFailAssertion(true);
+                    }
+                    // missed skip
+                    if (!property.hasSkippedRottenAssertion() && hasSkippedAssertionInHelper(property)) {
+                        property.setHasSkippedRottenAssertion(true);
+                    }
+                }
+            }
+
+            if (!property.hasContextDependentRottenAssertion() && !property.hasMissedFailAssertion()
+                    && !property.hasSkippedRottenAssertion()) {
+                property.setHasFullyRottenAssertion(true);
+            }
+        }
+
+        private boolean hasContextDependentRottenAssertionInHelper(MethodProperty property) {
+            if (property.hasContextDependentRottenAssertion()) {
+                return true;
+            } else {
+                for (InvocationMethod invocation : property.getInvocationList()) {
+                    MethodProperty invocationProperty = methodList
+                            .getPropertyByIdentifier(invocation.getMethodIdentifier());
+                    if (invocationProperty != null && hasContextDependentRottenAssertionInHelper(invocationProperty)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private boolean hasMissedFailAssertionInHelper(MethodProperty property) {
+            if (property.hasMissedFailAssertion()) {
+                return true;
+            } else {
+                for (InvocationMethod invocation : property.getInvocationList()) {
+                    MethodProperty invocationProperty = methodList
+                            .getPropertyByIdentifier(invocation.getMethodIdentifier());
+                    if (invocationProperty != null && hasMissedFailAssertionInHelper(invocationProperty)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private boolean hasSkippedAssertionInHelper(MethodProperty property) {
+            if (property.hasSkippedRottenAssertion()) {
+                return true;
+            } else {
+                for (InvocationMethod invocation : property.getInvocationList()) {
+                    MethodProperty invocationProperty = methodList
+                            .getPropertyByIdentifier(invocation.getMethodIdentifier());
+                    if (invocationProperty != null && hasSkippedAssertionInHelper(invocationProperty)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         /**
@@ -386,7 +498,8 @@ public class JUnit5TestRunner {
             Boolean wasSuccessful = Boolean.valueOf(false);
             Launcher launcher = LauncherFactory.create();
             LauncherDiscoveryRequest request = LauncherDiscoveryRequestBuilder.request()
-                    .selectors(selectMethod(clazz, methodName)).build();
+                    .selectors(selectMethod(clazz, methodName))
+                    .configurationParameter("junit.jupiter.extensions.autodetection.enabled", "true").build();
             TestExecutionListener listener = new reRunListener(wasSuccessful, methodList);
 
             for (int i = 0; i < numberOfTimes; i++) {
@@ -407,7 +520,8 @@ public class JUnit5TestRunner {
 
         @Override
         public void executionFinished(TestIdentifier testIdentifier, TestExecutionResult testExecutionResult) {
-            System.out.println("rerun: " + testIdentifier.getDisplayName() + ", " + testExecutionResult.getStatus());
+            // System.out.println("rerun: " + testIdentifier.getDisplayName() + ", " +
+            // testExecutionResult.getStatus());
             try {
                 if (testExecutionResult.getStatus() == Status.SUCCESSFUL) {
                     // this test method is flaky

@@ -23,6 +23,7 @@ import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
 
+import jtdog.file.CoverageWriter;
 import jtdog.file.ObjectSerializer;
 import jtdog.method.InvocationMethod;
 import jtdog.method.MethodList;
@@ -65,8 +66,9 @@ public class JUnit4TestRunner {
         @Override
         public void testStarted(final Description description) {
             // for debug
-            System.out.println(
-                    "start: " + description.getMethodName() + " in " + description.getTestClass().getCanonicalName());
+            // System.out.println(
+            // "start: " + description.getMethodName() + " in " +
+            // description.getTestClass().getCanonicalName());
 
             jacocoRuntimeData.reset();
             isTestSuccessful = true;
@@ -77,8 +79,8 @@ public class JUnit4TestRunner {
             Description description = failure.getDescription();
 
             // for debug
-            System.out.println("test fail: " + failure.getMessage());
-            System.out.println("test fail class: " + failure.getDescription().getClassName());
+            System.out.println("test fail: " + failure.getMessage() + " in " + failure.getDescription().getClassName()
+                    + "." + failure.getDescription().getMethodName());
 
             testResultsInDefaultOrder.put(getTestMethodFQN(description), false);
 
@@ -103,7 +105,8 @@ public class JUnit4TestRunner {
         @Override
         public void testFinished(final Description description) throws IOException {
             // for debug
-            System.out.println("finish: " + description.getMethodName());
+            System.out.println(
+                    "finish: " + description.getMethodName() + " in " + description.getTestClass().getCanonicalName());
 
             if (isTestSuccessful) {
                 testResultsInDefaultOrder.put(getTestMethodFQN(description), true);
@@ -160,11 +163,24 @@ public class JUnit4TestRunner {
             MethodProperty testMethodProperty = getTestMethodProperty(description);
             for (IClassCoverage coverage : coverages) {
                 String testClassName = coverage.getName().replace("/", ".");
-                checkInvocationExecuted(coverage, testMethodProperty, rottenLines, classNameToCoverage, testClassName);
+                for (int i = coverage.getFirstLine(); i <= coverage.getLastLine(); i++) {
+                    if (!getColor(coverage.getLine(i).getStatus()).equals("")) {
+                        CoverageWriter.write("Line " + Integer.valueOf(i) + ": "
+                                + getColor(coverage.getLine(i).getStatus()) + " in " + testClassName,
+                                getTestMethodFQN(description));
+                    }
+                }
+                // checkInvocationExecuted(coverage, testMethodProperty, rottenLines,
+                // classNameToCoverage, testClassName);
             }
 
+            IClassCoverage coverage = classNameToCoverage.get(description.getClassName());
+            String testClassName = coverage.getName().replace("/", ".");
+            checkInvocationExecuted(coverage, testMethodProperty, rottenLines, classNameToCoverage, testClassName);
             // 実行されていないアサーションを含む場合，rotten と判定
             if (rottenLines.size() != 0) {
+                setTestMethodRottenProperty(testMethodProperty);
+
                 if (testMethodProperty.hasContextDependentRottenAssertion()) {
                     testMethodProperty.addTestSmellType(MethodProperty.CONTEXT_DEPENDENT);
                 }
@@ -247,10 +263,13 @@ public class JUnit4TestRunner {
                 final HashSet<Integer> causeLines, HashMap<String, IClassCoverage> classNameToCoverage,
                 final String testClassName) {
             boolean hasAssertionNotExecuted = false;
-
             // 実行されていない(color = "red" or "") invocation を含むか調べる
             for (InvocationMethod invocation : property.getInvocationList()) {
                 int line = invocation.getLineNumber();
+
+                CoverageWriter.write("invoked " + invocation.getMethodIdentifier().getBinaryName() + " in line " + line,
+                        property.getBinaryName() + "-lines");
+
                 String color = getColor(coverage.getLine(line).getStatus());
                 // helper かどうか調べるため，isInvoke の値をセット
                 MethodProperty invocationProperty = methodList
@@ -260,7 +279,16 @@ public class JUnit4TestRunner {
                     // 実行されていないアサーションの場合
                     if (invocation.getMethodIdentifier().getSimpleName().startsWith("assert")) {
                         if (color.equals("red")) {
-                            causeLines.add(line);
+                            if (coverage.getName().replace("/", ".").startsWith(testClassName)) {
+                                causeLines.add(line);
+                            }
+                            setRottenProperty(property, invocation);
+                            hasAssertionNotExecuted = true;
+                        } else if (color.equals("")
+                                && checkInvocationInLocalExecuted(classNameToCoverage, testClassName, line)) {
+                            if (coverage.getName().replace("/", ".").startsWith(testClassName)) {
+                                causeLines.add(line);
+                            }
                             setRottenProperty(property, invocation);
                             hasAssertionNotExecuted = true;
                         }
@@ -274,7 +302,9 @@ public class JUnit4TestRunner {
                         String className = invocationProperty.getClassName();
                         if (checkInvocationExecuted(classNameToCoverage.get(className), invocationProperty, causeLines,
                                 classNameToCoverage, testClassName)) {
-                            causeLines.add(line);
+                            if (coverage.getName().replace("/", ".").startsWith(testClassName)) {
+                                causeLines.add(line);
+                            }
                             setRottenProperty(property, invocation);
                             hasAssertionNotExecuted = true;
                         }
@@ -282,6 +312,18 @@ public class JUnit4TestRunner {
                 }
             }
             return hasAssertionNotExecuted;
+        }
+
+        private boolean checkInvocationInLocalExecuted(HashMap<String, IClassCoverage> classNameToCoverage,
+                final String testClassName, final int line) {
+            for (String name : classNameToCoverage.keySet()) {
+                if (!name.equals(testClassName) && name.startsWith(testClassName)) {
+                    if (getColor(classNameToCoverage.get(name).getLine(line).getStatus()).equals("red")) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         /**
@@ -294,12 +336,81 @@ public class JUnit4TestRunner {
             boolean isInIfElseStatement = invocation.isInIfElseStatement();
             boolean isCouldBeSkipped = invocation.isCouldBeSkipped();
             boolean isMissedFail = invocation.isMissedFail();
-            if (!isInIfElseStatement && !isCouldBeSkipped && !isMissedFail) {
-                property.setHasFullyRottenAssertion(true);
-            }
             property.setHasContextDependentRottenAssertion(isInIfElseStatement);
             property.setHasSkippedRottenAssertion(isCouldBeSkipped);
             property.setHasMissedFailAssertion(isMissedFail);
+        }
+
+        private void setTestMethodRottenProperty(MethodProperty property) {
+            for (InvocationMethod invocation : property.getInvocationList()) {
+                MethodProperty invocationProperty = methodList
+                        .getPropertyByIdentifier(invocation.getMethodIdentifier());
+                if (invocationProperty != null) {
+                    // context dependent
+                    if (!property.hasContextDependentRottenAssertion()
+                            && hasContextDependentRottenAssertionInHelper(property)) {
+                        property.setHasContextDependentRottenAssertion(true);
+                    }
+                    // missed fail
+                    if (!property.hasMissedFailAssertion() && hasMissedFailAssertionInHelper(property)) {
+                        property.setHasMissedFailAssertion(true);
+                    }
+                    // missed skip
+                    if (!property.hasSkippedRottenAssertion() && hasSkippedAssertionInHelper(property)) {
+                        property.setHasSkippedRottenAssertion(true);
+                    }
+                }
+            }
+
+            if (!property.hasContextDependentRottenAssertion() && !property.hasMissedFailAssertion()
+                    && !property.hasSkippedRottenAssertion()) {
+                property.setHasFullyRottenAssertion(true);
+            }
+        }
+
+        private boolean hasContextDependentRottenAssertionInHelper(MethodProperty property) {
+            if (property.hasContextDependentRottenAssertion()) {
+                return true;
+            } else {
+                for (InvocationMethod invocation : property.getInvocationList()) {
+                    MethodProperty invocationProperty = methodList
+                            .getPropertyByIdentifier(invocation.getMethodIdentifier());
+                    if (invocationProperty != null && hasContextDependentRottenAssertionInHelper(invocationProperty)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private boolean hasMissedFailAssertionInHelper(MethodProperty property) {
+            if (property.hasMissedFailAssertion()) {
+                return true;
+            } else {
+                for (InvocationMethod invocation : property.getInvocationList()) {
+                    MethodProperty invocationProperty = methodList
+                            .getPropertyByIdentifier(invocation.getMethodIdentifier());
+                    if (invocationProperty != null && hasMissedFailAssertionInHelper(invocationProperty)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private boolean hasSkippedAssertionInHelper(MethodProperty property) {
+            if (property.hasSkippedRottenAssertion()) {
+                return true;
+            } else {
+                for (InvocationMethod invocation : property.getInvocationList()) {
+                    MethodProperty invocationProperty = methodList
+                            .getPropertyByIdentifier(invocation.getMethodIdentifier());
+                    if (invocationProperty != null && hasSkippedAssertionInHelper(invocationProperty)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         /**
