@@ -64,7 +64,7 @@ public class StaticAnalyzer {
                 // final TypeDeclaration typeDec = (TypeDeclaration) unit.types().get(0);
                 final ITypeBinding bind = dec.resolveBinding();
                 testClassNamesToExecuted.add(bind.getBinaryName());
-                System.out.println("unit: " + bind.getBinaryName());
+                // System.out.println("unit: " + bind.getBinaryName());
 
                 final TestClassASTVisitor visitor = new TestClassASTVisitor(methodList, unit, testClassNames, isJUnit5);
                 unit.accept(visitor);
