@@ -27,8 +27,6 @@ import jtdog.method.MethodProperty;
 public class SniffTask extends DefaultTask {
     @Input
     private Project project;
-    @Input
-    private boolean isRootProject;
 
     public Project getProject() {
         return project;
@@ -36,14 +34,6 @@ public class SniffTask extends DefaultTask {
 
     public void setProject(final Project project) {
         this.project = project;
-    }
-
-    public boolean isRootProject() {
-        return isRootProject;
-    }
-
-    public void setIsRootProject(final boolean isRootProject) {
-        this.isRootProject = isRootProject;
     }
 
     @TaskAction
@@ -123,7 +113,13 @@ public class SniffTask extends DefaultTask {
         // 動的解析
         final DynamicAnalyzer da = new DynamicAnalyzer(sa.getTestClassNames(), sa.getTestClassNamesToExecuted(),
                 testClassesDirPath);
-        String projectName = isRootProject() ? null : getProject().getName();
+
+        String projectName = "";
+        Project p = getProject();
+        while (p.getParent() != null) {
+            projectName = p.getName() + ":" + projectName;
+            p = p.getParent();
+        }
         da.run(methodList, loader, projectName, isJUnit5);
 
         // generate result JSON file

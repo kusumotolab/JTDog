@@ -27,17 +27,10 @@ public class JTDogPlugin implements Plugin<Project> {
     }
 
     private void registerTasks(Project project, Boolean isRootProject) {
-        // String sniff = getTaskName("sniff", isRootProject, project);
-        String compileJava = getTaskName("compileJava", isRootProject, project);
-        String compileTestJava = getTaskName("compileTestJava", isRootProject, project);
-        // String detectDependentTests = getTaskName("detectDependentTests",
-        // isRootProject, project);
-
         project.getTasks().register("sniff", SniffTask.class, task -> {
-            task.dependsOn(compileJava);
-            task.dependsOn(compileTestJava);
+            task.dependsOn(project.getTasks().findByPath("compileJava"));
+            task.dependsOn(project.getTasks().findByPath("compileTestJava"));
             task.setProject(project);
-            task.setIsRootProject(isRootProject);
             task.setDescription("Detects Java test smells.");
             task.doLast(s -> System.out.println("Done."));
         });
