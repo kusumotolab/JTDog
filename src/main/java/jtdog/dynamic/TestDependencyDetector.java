@@ -68,7 +68,9 @@ public class TestDependencyDetector {
             fileInputStream.close();
             for (Class<?> testClass : testClasses) {
                 ArrayList<String> order = testClassNameToDefaultExecutionOrder.get(testClass.getName());
-                runJUnit5Tests(testClass, getRandomizedStringOrder(order));
+                if (order != null) {
+                    runJUnit5Tests(testClass, getRandomizedStringOrder(order));
+                }
             }
         } else {
             for (Class<?> testClass : testClasses) {
@@ -89,6 +91,9 @@ public class TestDependencyDetector {
                     String testMethodFQN = source.getClassName() + "." + source.getMethodName();
                     boolean defaultResult = testResultsInDefaultOrder.get(testMethodFQN);
                     boolean wasTestSuccessful = testExecutionResult.getStatus() == Status.SUCCESSFUL ? true : false;
+                    if (testExecutionResult.getStatus() == Status.FAILED) {
+                        System.out.println("fail: " + testMethodFQN + ", " + testExecutionResult.getThrowable());
+                    }
                     // デフォルトの実行順でのテスト結果と異なる場合は test dependency
                     boolean isResultDifferent = defaultResult == wasTestSuccessful ? false : true;
                     if (isResultDifferent) {
@@ -102,10 +107,15 @@ public class TestDependencyDetector {
         };
 
         for (String methodName : order) {
-            System.out.println("name: " + methodName + " in " + testClass.getName());
-            LauncherDiscoveryRequest request = LauncherDiscoveryRequestBuilder.request()
-                    .selectors(selectMethod(testClass, methodName)).build();
-            launcher.execute(request, listener);
+            // System.out.println("name: " + methodName + " in " + testClass.getName());
+            try {
+                LauncherDiscoveryRequest request = LauncherDiscoveryRequestBuilder.request()
+                        .selectors(selectMethod(testClass, methodName))
+                        .configurationParameter("junit.jupiter.extensions.autodetection.enabled", "true").build();
+                launcher.execute(request, listener);
+            } catch (Exception e) {
+                // TODO: handle exception
+            }
         }
     }
 
