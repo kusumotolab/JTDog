@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jtdog.method.MethodProperty;
 
 public class TaskResult {
-    @JsonProperty("rotten")
+    @JsonProperty("fully_rotten")
     private int numberOfRotten;
     @JsonProperty("smoke")
     private int numberOfSmoke;
