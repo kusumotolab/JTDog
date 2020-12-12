@@ -20,7 +20,7 @@ import jtdog.method.MethodList;
 import jtdog.method.MethodProperty;
 
 public class DynamicAnalyzer {
-    private final static int RANDOMIZED_TRIALS = 20;
+    private final static int RANDOMIZED_TRIALS = 10;
 
     private final List<String> testClassNames;
     private final List<String> testClassNamesToExecuted;
@@ -74,9 +74,11 @@ public class DynamicAnalyzer {
         System.out.println("detecting dependent tests ...");
         // ランダムな順番でテスト実行を繰り返す
         for (int i = 0; i < RANDOMIZED_TRIALS; i++) {
+            System.out.println("loop " + i);
             List<String> cmd = new ArrayList<String>();
-            cmd.add("gradle");
-            String taskName = (projectName == null) ? "detectDependentTest" : projectName + ":detectDependentTest";
+            cmd.add("./gradlew");
+            // 2回以上ネスとしているサブプロジェクトの場合だめ
+            String taskName = (projectName.equals("")) ? "detectDependentTest" : projectName + ":detectDependentTest";
             cmd.add(taskName);
             if (isJUnit5) {
                 cmd.add("-Pjunit5=true");
@@ -90,6 +92,11 @@ public class DynamicAnalyzer {
             new StreamThread(p.getErrorStream(), "ERROR").start();
 
             p.waitFor();
+
+            p.getInputStream().close();
+            p.getOutputStream().close();
+            p.getErrorStream().close();
+
             p.destroy();
 
             dependentTests.addAll(deserializeHashMap("jtdog_tmp/dependentTests.ser"));
