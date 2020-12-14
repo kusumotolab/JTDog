@@ -23,7 +23,7 @@ import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
 
-import jtdog.file.CoverageWriter;
+import jtdog.file.DebugWriter;
 import jtdog.file.ObjectSerializer;
 import jtdog.method.InvocationMethod;
 import jtdog.method.MethodList;
@@ -84,6 +84,8 @@ public class JUnit4TestRunner {
 
             testResultsInDefaultOrder.put(getTestMethodFQN(description), false);
 
+            DebugWriter.writeResult(getTestMethodFQN(description) + ": " + failure.getTrace(), "normal");
+
             // identify flaky test failure
             if (reRun(RERUN_TIMES, description.getTestClass(), description.getMethodName())) {
                 // this test method is flaky
@@ -109,8 +111,11 @@ public class JUnit4TestRunner {
                     "finish: " + description.getMethodName() + " in " + description.getTestClass().getCanonicalName());
 
             if (isTestSuccessful) {
+                getTestMethodProperty(description).setWasSuccessful(true);
                 testResultsInDefaultOrder.put(getTestMethodFQN(description), true);
                 collectRuntimeData(description);
+            } else {
+                getTestMethodProperty(description).setWasSuccessful(false);
             }
         }
 
@@ -165,7 +170,7 @@ public class JUnit4TestRunner {
                 String testClassName = coverage.getName().replace("/", ".");
                 for (int i = coverage.getFirstLine(); i <= coverage.getLastLine(); i++) {
                     if (!getColor(coverage.getLine(i).getStatus()).equals("")) {
-                        CoverageWriter.write("Line " + Integer.valueOf(i) + ": "
+                        DebugWriter.writeCoverage("Line " + Integer.valueOf(i) + ": "
                                 + getColor(coverage.getLine(i).getStatus()) + " in " + testClassName,
                                 getTestMethodFQN(description));
                     }
@@ -178,7 +183,7 @@ public class JUnit4TestRunner {
             String testClassName = coverage.getName().replace("/", ".");
             checkInvocationExecuted(coverage, testMethodProperty, rottenLines, classNameToCoverage, testClassName);
             // 実行されていないアサーションを含む場合，rotten と判定
-            if (rottenLines.size() != 0) {
+            if (rottenLines.size() != 0 && testMethodProperty.wasSuccessful()) {
                 setTestMethodRottenProperty(testMethodProperty);
 
                 if (testMethodProperty.hasContextDependentRottenAssertion()) {
@@ -267,7 +272,8 @@ public class JUnit4TestRunner {
             for (InvocationMethod invocation : property.getInvocationList()) {
                 int line = invocation.getLineNumber();
 
-                CoverageWriter.write("invoked " + invocation.getMethodIdentifier().getBinaryName() + " in line " + line,
+                DebugWriter.writeCoverage(
+                        "invoked " + invocation.getMethodIdentifier().getBinaryName() + " in line " + line,
                         property.getBinaryName() + "-lines");
 
                 String color = getColor(coverage.getLine(line).getStatus());
@@ -477,6 +483,7 @@ public class JUnit4TestRunner {
             for (int i = 0; i < numberOfTimes; i++) {
                 Result result = junit.run(Request.method(clazz, methodName));
                 if (result.wasSuccessful()) {
+                    System.out.println("flaky");
                     return true;
                 }
             }

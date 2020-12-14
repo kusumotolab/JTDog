@@ -30,7 +30,7 @@ import org.junit.platform.launcher.TestIdentifier;
 import org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder;
 import org.junit.platform.launcher.core.LauncherFactory;
 
-import jtdog.file.CoverageWriter;
+import jtdog.file.DebugWriter;
 import jtdog.file.ObjectSerializer;
 import jtdog.method.InvocationMethod;
 import jtdog.method.MethodList;
@@ -110,9 +110,10 @@ public class JUnit5TestRunner {
                     defaultExecutionOrder.add(source.getMethodName());
                     testClassNameToDefaultExecutionOrder.put(testClassName, defaultExecutionOrder);
                 }
-
+                MethodProperty property = getTestMethodProperty(testIdentifier);
                 Status status = testExecutionResult.getStatus();
                 if (status == Status.SUCCESSFUL) {
+                    property.setWasSuccessful(true);
                     testResultsInDefaultOrder.put(getTestMethodFQN(testIdentifier), true);
                     try {
                         collectRuntimeData(testIdentifier);
@@ -122,7 +123,10 @@ public class JUnit5TestRunner {
                 } else if (status == Status.FAILED) {
                     // for debug
                     System.out.println("test fail: " + testIdentifier.getDisplayName());
+                    DebugWriter.writeResult(source.getMethodName() + " in " + testClassName + ": "
+                            + testExecutionResult.getThrowable().toString(), "normal");
 
+                    property.setWasSuccessful(false);
                     testResultsInDefaultOrder.put(getTestMethodFQN(testIdentifier), false);
                     // identify flaky test failure
                     reRun(RERUN_TIMES, source.getJavaClass(), source.getMethodName());
@@ -153,7 +157,7 @@ public class JUnit5TestRunner {
                 String testClassName = coverage.getName().replace("/", ".");
                 for (int i = coverage.getFirstLine(); i <= coverage.getLastLine(); i++) {
                     if (!getColor(coverage.getLine(i).getStatus()).equals("")) {
-                        CoverageWriter.write("Line " + Integer.valueOf(i) + ": "
+                        DebugWriter.writeCoverage("Line " + Integer.valueOf(i) + ": "
                                 + getColor(coverage.getLine(i).getStatus()) + " in " + testClassName,
                                 getTestMethodFQN(testIdentifier));
                     }
@@ -167,7 +171,7 @@ public class JUnit5TestRunner {
             checkInvocationExecuted(coverage, testMethodProperty, rottenLines, classNameToCoverage, testClassName);
 
             // 実行されていないアサーションを含む場合，rotten と判定
-            if (rottenLines.size() != 0) {
+            if (rottenLines.size() != 0 && testMethodProperty.wasSuccessful()) {
                 setTestMethodRottenProperty(testMethodProperty);
 
                 if (testMethodProperty.hasContextDependentRottenAssertion()) {
@@ -289,7 +293,8 @@ public class JUnit5TestRunner {
             for (InvocationMethod invocation : property.getInvocationList()) {
                 int line = invocation.getLineNumber();
 
-                CoverageWriter.write("invoked " + invocation.getMethodIdentifier().getBinaryName() + " in line " + line,
+                DebugWriter.writeCoverage(
+                        "invoked " + invocation.getMethodIdentifier().getBinaryName() + " in line " + line,
                         property.getBinaryName() + "-lines");
 
                 String color = getColor(coverage.getLine(line).getStatus());
@@ -528,6 +533,7 @@ public class JUnit5TestRunner {
                     MethodSource source = (MethodSource) testIdentifier.getSource().get();
                     String testMethodName = source.getClassName() + "." + source.getMethodName();
                     MethodProperty testMethodProperty = methodList.getPropertyByName(testMethodName);
+                    System.out.println("flaky");
                     if (!testMethodProperty.getTestSmellTypes().contains(MethodProperty.FLAKY)) {
                         testMethodProperty.addTestSmellType(MethodProperty.FLAKY);
                     }

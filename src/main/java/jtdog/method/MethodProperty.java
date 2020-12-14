@@ -31,6 +31,7 @@ public class MethodProperty {
     private final List<InvocationMethod> invocationList;
     private String binaryName;
     private boolean isDeclaredInLocal;
+    private boolean wasSuccessful;
 
     // TODO できれば別の方法でこの情報の保存をしたい
     private boolean hasContextDependentRottenAssertion;
@@ -182,6 +183,15 @@ public class MethodProperty {
 
     public void setHasMissedFailAssertion(boolean hasMissedFailAssertion) {
         this.hasMissedFailAssertion = hasMissedFailAssertion;
+    }
+
+    @JsonIgnore
+    public boolean wasSuccessful() {
+        return wasSuccessful;
+    }
+
+    public void setWasSuccessful(boolean wasSuccessful) {
+        this.wasSuccessful = wasSuccessful;
     }
 
     /*
