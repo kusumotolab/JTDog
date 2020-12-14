@@ -38,6 +38,8 @@ public class SniffTask extends DefaultTask {
 
     @TaskAction
     void sniffTaskAction() throws Exception {
+        recursiveDeleteFile(new File("out_coverage"));
+        recursiveDeleteFile(new File("out_result"));
         analyzeJavaTests(getProject());
     }
 
@@ -78,37 +80,54 @@ public class SniffTask extends DefaultTask {
         // classpath にソースファイルのパスを追加
         SourceSetOutput mainOutput = mainSourceSet.getOutput();
         Set<File> mainClassesDirs = mainOutput.getClassesDirs().getFiles();
-
         for (File dir : mainClassesDirs) {
-            System.out.println("main: " + dir.getAbsolutePath());
+            // System.out.println("main: " + dir.getAbsolutePath());
             classPaths.add(new File(dir.getAbsolutePath()));
         }
 
-        // URLClassLoader 生成
-        URL[] urls = FileSetConverter.toURLs(classPaths);
-        ClassLoader parent = SniffTask.class.getClassLoader();
-        final MemoryClassLoader loader = new MemoryClassLoader(urls, parent);
+        Set<File> mainResources = mainSourceSet.getResources().getSrcDirs();
+        for (File dir : mainResources) {
+            // System.out.println("resource: " + dir.getAbsolutePath());
+            classPaths.add(new File(dir.getAbsolutePath()));
+        }
+
+        Set<File> testResources = testSourceSet.getResources().getSrcDirs();
+        for (File dir : testResources) {
+            // System.out.println("resource: " + dir.getAbsolutePath());
+            classPaths.add(new File(dir.getAbsolutePath()));
+        }
+
+        classPaths.add(new File(getProject().getProjectDir().getAbsolutePath()));
 
         String testClassesDirPath = "";
         SourceSetOutput testOutput = testSourceSet.getOutput();
         Set<File> testClassesDirs = testOutput.getClassesDirs().getFiles();
+        for (File dir : testClassesDirs) {
+            // System.out.println("main: " + dir.getAbsolutePath());
+            classPaths.add(new File(dir.getAbsolutePath()));
+        }
 
         // 現在の方式ではディレクトリのパスとテストクラスのバイナリ名から .class ファイルを読み込むため，
         // テストクラスのビルド時の生成ファイルを出力するディレクトリが複数の場合はとりあえず解析不可能としておく
         if (testClassesDirs.size() == 1) {
             for (File dir : testClassesDirs) {
-                System.out.println("test: " + dir.getAbsolutePath());
+                // System.out.println("test: " + dir.getAbsolutePath());
                 testClassesDirPath = dir.getAbsolutePath();
             }
         } else {
             for (File dir : testClassesDirs) {
-                System.out.println("test: " + dir.getAbsolutePath());
+                // System.out.println("test: " + dir.getAbsolutePath());
                 if (dir.getAbsolutePath().contains("/java/")) {
                     testClassesDirPath = dir.getAbsolutePath();
                     break;
                 }
             }
         }
+
+        // URLClassLoader 生成
+        URL[] urls = FileSetConverter.toURLs(classPaths);
+        ClassLoader parent = SniffTask.class.getClassLoader();
+        final MemoryClassLoader loader = new MemoryClassLoader(urls, parent);
 
         // 動的解析
         final DynamicAnalyzer da = new DynamicAnalyzer(sa.getTestClassNames(), sa.getTestClassNamesToExecuted(),
@@ -189,5 +208,20 @@ public class SniffTask extends DefaultTask {
         result.setNumberOfSkip(skip);
 
         jw.writeJSONFile(result, "out", project.getName() + "_result");
+    }
+
+    private void recursiveDeleteFile(final File file) throws Exception {
+        // 存在しない場合は処理終了
+        if (!file.exists()) {
+            return;
+        }
+        // 対象がディレクトリの場合は再帰処理
+        if (file.isDirectory()) {
+            for (File child : file.listFiles()) {
+                recursiveDeleteFile(child);
+            }
+        }
+        // 対象がファイルもしくは配下が空のディレクトリの場合は削除する
+        file.delete();
     }
 }

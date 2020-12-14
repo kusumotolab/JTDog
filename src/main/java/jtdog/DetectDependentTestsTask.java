@@ -56,6 +56,18 @@ public class DetectDependentTestsTask extends DefaultTask {
             classPaths.add(new File(dir.getAbsolutePath()));
         }
 
+        Set<File> mainResources = mainSourceSet.getResources().getSrcDirs();
+        for (File dir : mainResources) {
+            classPaths.add(new File(dir.getAbsolutePath()));
+        }
+
+        Set<File> testResources = testSourceSet.getResources().getSrcDirs();
+        for (File dir : testResources) {
+            classPaths.add(new File(dir.getAbsolutePath()));
+        }
+
+        classPaths.add(new File(getProject().getProjectDir().getAbsolutePath()));
+
         URL[] urls = FileSetConverter.toURLs(classPaths);
         ClassLoader parent = DetectDependentTestsTask.class.getClassLoader();
         final URLClassLoader loader = new URLClassLoader(urls, parent);
