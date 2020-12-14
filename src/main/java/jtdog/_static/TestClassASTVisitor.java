@@ -189,6 +189,9 @@ public class TestClassASTVisitor extends ASTVisitor {
     public boolean visit(final MethodInvocation node) {
         if (activeMethod != null) {
             final IMethodBinding methodBinding = node.resolveMethodBinding();
+            if (methodBinding == null) {
+                return super.visit(node);
+            }
             MethodIdentifier identifier = new MethodIdentifier(methodBinding);
             InvocationMethod invocation = new InvocationMethod(identifier, unit.getLineNumber(node.getStartPosition()));
             if (isInIfElseStatement(node)) {
