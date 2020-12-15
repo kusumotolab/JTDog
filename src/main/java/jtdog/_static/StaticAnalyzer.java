@@ -60,14 +60,19 @@ public class StaticAnalyzer {
             parser.createASTs(new String[] { source }, null, new String[] {}, requestor, new NullProgressMonitor());
             // 対象ソースごとにASTの解析を行う
             for (final CompilationUnit unit : requestor.units) {
-                final AbstractTypeDeclaration dec = (AbstractTypeDeclaration) unit.types().get(0);
-                // final TypeDeclaration typeDec = (TypeDeclaration) unit.types().get(0);
-                final ITypeBinding bind = dec.resolveBinding();
-                testClassNamesToExecuted.add(bind.getBinaryName());
-                // System.out.println("unit: " + bind.getBinaryName());
+                try {
+                    final AbstractTypeDeclaration dec = (AbstractTypeDeclaration) unit.types().get(0);
+                    // final TypeDeclaration typeDec = (TypeDeclaration) unit.types().get(0);
+                    final ITypeBinding bind = dec.resolveBinding();
+                    testClassNamesToExecuted.add(bind.getBinaryName());
+                    // System.out.println("unit: " + bind.getBinaryName());
 
-                final TestClassASTVisitor visitor = new TestClassASTVisitor(methodList, unit, testClassNames, isJUnit5);
-                unit.accept(visitor);
+                    final TestClassASTVisitor visitor = new TestClassASTVisitor(methodList, unit, testClassNames,
+                            isJUnit5);
+                    unit.accept(visitor);
+                } catch (Exception e) {
+                    // ソースコード内にクラスがない場合は無視
+                }
             }
         }
 
@@ -83,7 +88,7 @@ public class StaticAnalyzer {
      * @return
      */
     private boolean hasAssertionIndirectly(final MethodIdentifier identifier, final MethodProperty methodProperty,
-            MethodList methodList) {
+            MethodList methodList, final MethodIdentifier caller) {
         boolean hasAssertion = false;
 
         for (final InvocationMethod invocation : methodProperty.getInvocationList()) {
@@ -91,7 +96,8 @@ public class StaticAnalyzer {
             // ユーザー定義のメソッドではない
             // あるいは再帰呼び出しを行う場合
             if ((invocationProperty = methodList.getPropertyByIdentifier(invocation.getMethodIdentifier())) == null
-                    || identifier.equals(invocation.getMethodIdentifier())) {
+                    || identifier.equals(invocation.getMethodIdentifier())
+                    || invocation.getMethodIdentifier().equals(caller)) {
                 continue;
             }
 
@@ -99,7 +105,8 @@ public class StaticAnalyzer {
                 hasAssertion = true;
                 break;
             } else {
-                hasAssertion = hasAssertionIndirectly(invocation.getMethodIdentifier(), invocationProperty, methodList);
+                hasAssertion = hasAssertionIndirectly(invocation.getMethodIdentifier(), invocationProperty, methodList,
+                        identifier);
             }
         }
 
@@ -114,7 +121,7 @@ public class StaticAnalyzer {
     private void detectTestSmellsStatically(MethodList methodList) {
         for (final MethodIdentifier identifier : methodList.getMethodIdentifierList()) {
             final MethodProperty property = methodList.getPropertyByIdentifier(identifier);
-            final boolean hasAssertionIndirectly = hasAssertionIndirectly(identifier, property, methodList);
+            final boolean hasAssertionIndirectly = hasAssertionIndirectly(identifier, property, methodList, identifier);
             property.setHasAssertionIndirectly(hasAssertionIndirectly);
 
             // ローカルクラスや匿名クラスで宣言されたメソッドの場合は絶対にテストメソッドではないのでスキップ
