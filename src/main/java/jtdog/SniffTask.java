@@ -139,7 +139,14 @@ public class SniffTask extends DefaultTask {
             projectName = p.getName() + ":" + projectName;
             p = p.getParent();
         }
-        da.run(methodList, loader, projectName, isJUnit5);
+
+        boolean skipDetectDependency;
+        if (project.hasProperty("skip")) {
+            skipDetectDependency = project.findProperty("skip").equals("true") ? true : false;
+        } else {
+            skipDetectDependency = false;
+        }
+        da.run(methodList, loader, projectName, isJUnit5, skipDetectDependency);
 
         // generate result JSON file
         final TaskResult result = new TaskResult();
