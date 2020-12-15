@@ -15,6 +15,7 @@ import org.jacoco.core.runtime.IRuntime;
 import org.jacoco.core.runtime.LoggerRuntime;
 import org.jacoco.core.runtime.RuntimeData;
 
+import jtdog.file.DebugWriter;
 import jtdog.file.ObjectSerializer;
 import jtdog.method.MethodList;
 import jtdog.method.MethodProperty;
@@ -48,13 +49,17 @@ public class DynamicAnalyzer {
 
     // テスト以外のクラスも instrumenter を適用すべき？
     public void run(final MethodList methodList, final MemoryClassLoader memoryClassLoader, final String projectName,
-            final boolean isJUnit5) throws Exception {
+            final boolean isJUnit5, final boolean skipDetectDependency) throws Exception {
         // テストクラスすべてに instrumenter を適用
         for (String testClassName : testClassNames) {
-            final InputStream original = getTargetClass(testClassName);
-            final byte[] instrumented = jacocoInstrumenter.instrument(original, testClassName);
-            original.close();
-            memoryClassLoader.addDefinition(testClassName, instrumented);
+            try {
+                final InputStream original = getTargetClass(testClassName);
+                final byte[] instrumented = jacocoInstrumenter.instrument(original, testClassName);
+                original.close();
+                memoryClassLoader.addDefinition(testClassName, instrumented);
+            } catch (FileNotFoundException e) {
+                // TODO: handle exception
+            }
         }
 
         // テストクラスのロード
@@ -68,9 +73,16 @@ public class DynamicAnalyzer {
             runner.run(methodList, testClasses);
         }
 
+        if (skipDetectDependency) {
+            File tmpDirectory = new File("jtdog_tmp");
+            recursiveDeleteFile(tmpDirectory);
+            return;
+        }
+
         ObjectSerializer.serializeObject("jtdog_tmp/testClassNamesToExecuted.ser", testClassNamesToExecuted);
 
         HashSet<String> dependentTests = new HashSet<>();
+
         System.out.println("detecting dependent tests ...");
         // ランダムな順番でテスト実行を繰り返す
         for (int i = 0; i < RANDOMIZED_TRIALS; i++) {
@@ -100,6 +112,7 @@ public class DynamicAnalyzer {
             p.destroy();
 
             dependentTests.addAll(deserializeHashMap("jtdog_tmp/dependentTests.ser"));
+            DebugWriter.writeResult(" *** " + i + " *** ", "detect");
         }
 
         for (String fqn : dependentTests) {
