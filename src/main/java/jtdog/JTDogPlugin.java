@@ -13,20 +13,20 @@ import org.gradle.api.Project;
  */
 public class JTDogPlugin implements Plugin<Project> {
     public void apply(final Project project) {
+        registerTasks(project);
         // Register a task
         Set<Project> subProjects = project.getSubprojects();
-
-        if (subProjects.isEmpty()) {
-            registerTasks(project, true);
-        } else {
+        if (!subProjects.isEmpty()) {
+            // registerTasks(project);
+            // } else {
             for (Project subProject : subProjects) {
-                registerTasks(subProject, false);
+                registerTasks(subProject);
             }
         }
 
     }
 
-    private void registerTasks(Project project, Boolean isRootProject) {
+    private void registerTasks(Project project) {
         project.getTasks().register("sniff", SniffTask.class, task -> {
             if (project.getTasks().findByPath("compileJava") != null) {
                 task.dependsOn(project.getTasks().findByPath("compileJava"));
@@ -45,7 +45,4 @@ public class JTDogPlugin implements Plugin<Project> {
         });
     }
 
-    private String getTaskName(String taskName, Boolean isRootProject, Project project) {
-        return isRootProject ? taskName : ":" + project.getName() + ":" + taskName;
-    }
 }
