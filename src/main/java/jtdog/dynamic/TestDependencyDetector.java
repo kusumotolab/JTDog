@@ -67,10 +67,39 @@ public class TestDependencyDetector {
                     .readObject();
             objectInputStream.close();
             fileInputStream.close();
+
+            Launcher launcher = LauncherFactory.create();
+            TestExecutionListener listener = new TestExecutionListener() {
+                @Override
+                public void executionFinished(TestIdentifier testIdentifier, TestExecutionResult testExecutionResult) {
+                    try {
+                        MethodSource source = (MethodSource) testIdentifier.getSource().get();
+                        String testMethodFQN = source.getClassName() + "." + source.getMethodName();
+                        boolean defaultResult = testResultsInDefaultOrder.get(testMethodFQN);
+                        boolean wasTestSuccessful = testExecutionResult.getStatus() == Status.SUCCESSFUL ? true : false;
+                        if (testExecutionResult.getStatus() == Status.FAILED) {
+                            System.out.println("fail: " + testMethodFQN + ", " + testExecutionResult.getThrowable());
+                            DebugWriter.writeResult(
+                                    testMethodFQN + ": " + testExecutionResult.getThrowable().get().getMessage(),
+                                    "detect");
+                        }
+
+                        // デフォルトの実行順でのテスト結果と異なる場合は test dependency
+                        boolean isResultDifferent = defaultResult == wasTestSuccessful ? false : true;
+                        if (isResultDifferent) {
+                            dependentTests.add(testMethodFQN);
+                        }
+                    } catch (Exception e) {
+                        // TODO: handle exception
+                    }
+                    TestExecutionListener.super.executionFinished(testIdentifier, testExecutionResult);
+                }
+            };
+
             for (Class<?> testClass : testClasses) {
                 ArrayList<String> order = testClassNameToDefaultExecutionOrder.get(testClass.getName());
                 if (order != null) {
-                    runJUnit5Tests(testClass, getRandomizedStringOrder(order));
+                    runJUnit5Tests(testClass, getRandomizedStringOrder(order), launcher, listener);
                 }
             }
         } else {
@@ -82,33 +111,8 @@ public class TestDependencyDetector {
         ObjectSerializer.serializeObject("jtdog_tmp/dependentTests.ser", dependentTests);
     }
 
-    private void runJUnit5Tests(final Class<?> testClass, final ArrayList<String> order) {
-        Launcher launcher = LauncherFactory.create();
-        TestExecutionListener listener = new TestExecutionListener() {
-            @Override
-            public void executionFinished(TestIdentifier testIdentifier, TestExecutionResult testExecutionResult) {
-                try {
-                    MethodSource source = (MethodSource) testIdentifier.getSource().get();
-                    String testMethodFQN = source.getClassName() + "." + source.getMethodName();
-                    boolean defaultResult = testResultsInDefaultOrder.get(testMethodFQN);
-                    boolean wasTestSuccessful = testExecutionResult.getStatus() == Status.SUCCESSFUL ? true : false;
-                    if (testExecutionResult.getStatus() == Status.FAILED) {
-                        System.out.println("fail: " + testMethodFQN + ", " + testExecutionResult.getThrowable());
-                        DebugWriter.writeResult(testMethodFQN + ": " + testExecutionResult.getThrowable().toString(),
-                                "detect");
-                    }
-                    // デフォルトの実行順でのテスト結果と異なる場合は test dependency
-                    boolean isResultDifferent = defaultResult == wasTestSuccessful ? false : true;
-                    if (isResultDifferent) {
-                        dependentTests.add(testMethodFQN);
-                    }
-                } catch (Exception e) {
-                    // TODO: handle exception
-                }
-                TestExecutionListener.super.executionFinished(testIdentifier, testExecutionResult);
-            }
-        };
-
+    private void runJUnit5Tests(final Class<?> testClass, final ArrayList<String> order, final Launcher launcher,
+            final TestExecutionListener listener) {
         for (String methodName : order) {
             // System.out.println("name: " + methodName + " in " + testClass.getName());
             try {
