@@ -14,6 +14,10 @@ public class MemoryClassLoader extends URLClassLoader {
         super(urls, parent);
     }
 
+    public MemoryClassLoader(URL[] urls) {
+        super(urls);
+    }
+
     private final Map<String, byte[]> definitions = new HashMap<String, byte[]>();
 
     /**
@@ -33,6 +37,7 @@ public class MemoryClassLoader extends URLClassLoader {
     @Override
     protected Class<?> findClass(final String name) throws ClassNotFoundException {
         Class<?> c = null;
+
         // try to load from memory
         final byte[] bytes = definitions.get(name);
         if (bytes != null) {
@@ -42,6 +47,11 @@ public class MemoryClassLoader extends URLClassLoader {
                 throw e;
             }
         }
+
+        /*
+         * if (name.startsWith("org.junit.") || name.startsWith("junit.") ||
+         * name.startsWith("org.hamcrest.")) { return getParent().loadClass(name); }
+         */
 
         // if fails, try to load from classpath
         if (null == c) {
@@ -56,6 +66,7 @@ public class MemoryClassLoader extends URLClassLoader {
         if (null == c) {
             throw new ClassNotFoundException(name);
         }
+
         return c;
     }
 

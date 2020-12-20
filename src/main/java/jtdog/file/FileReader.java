@@ -13,6 +13,7 @@ import java.util.stream.Stream;
 import org.gradle.api.Project;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ConfigurationContainer;
+import org.gradle.api.tasks.SourceSet;
 
 public class FileReader {
 
@@ -50,6 +51,20 @@ public class FileReader {
         } catch (final IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static Set<File> getClassPaths(SourceSet sourceSet) {
+        Set<File> files = new HashSet<>();
+        files.addAll(sourceSet.getCompileClasspath().getFiles());
+        files.addAll(sourceSet.getRuntimeClasspath().getFiles());
+        return files;
+    }
+
+    public static Set<File> getExternalJarFiles(SourceSet sourceSet) {
+        Set<File> files = new HashSet<>();
+        files.addAll(sourceSet.getCompileClasspath().filter(f -> f.getName().endsWith(".jar")).getFiles());
+        files.addAll(sourceSet.getRuntimeClasspath().filter(f -> f.getName().endsWith(".jar")).getFiles());
+        return files;
     }
 
     /**

@@ -16,7 +16,7 @@ import org.gradle.api.tasks.TaskAction;
 
 import jtdog._static.StaticAnalyzer;
 import jtdog.dynamic.DynamicAnalyzer;
-import jtdog.dynamic.MemoryClassLoader;
+import jtdog.dynamic.JUnitMemoryClassLoader;
 import jtdog.file.FileReader;
 import jtdog.file.FileSetConverter;
 import jtdog.file.JSONWriter;
@@ -52,8 +52,8 @@ public class SniffTask extends DefaultTask {
                 .getByName("test");
 
         // 外部 jar のパス
-        final Set<File> classPaths = FileReader.getExternalJarFiles(project);
-        final String[] externalJarFilePaths = FileSetConverter.toAbsolutePathArray(classPaths);
+        final Set<File> externalJarFiles = FileReader.getExternalJarFiles(testSourceSet);// (project);
+        final String[] externalJarFilePaths = FileSetConverter.toAbsolutePathArray(externalJarFiles);
 
         // property により JUnit5 かどうか判断
         boolean isJUnit5;
@@ -78,37 +78,10 @@ public class SniffTask extends DefaultTask {
         sa.run(methodList, isJUnit5);
 
         // classpath にソースファイルのパスを追加
-        SourceSetOutput mainOutput = mainSourceSet.getOutput();
-        Set<File> mainClassesDirs = mainOutput.getClassesDirs().getFiles();
-        for (File dir : mainClassesDirs) {
-            // System.out.println("main: " + dir.getAbsolutePath());
-            classPaths.add(new File(dir.getAbsolutePath()));
-        }
-
-        Set<File> mainResources = mainSourceSet.getResources().getSrcDirs();
-        for (File dir : mainResources) {
-            // System.out.println("resource: " + dir.getAbsolutePath());
-            classPaths.add(new File(dir.getAbsolutePath()));
-        }
-
-        Set<File> testResources = testSourceSet.getResources().getSrcDirs();
-        for (File dir : testResources) {
-            // System.out.println("resource: " + dir.getAbsolutePath());
-            classPaths.add(new File(dir.getAbsolutePath()));
-        }
-
-        classPaths.add(new File(getProject().getProjectDir().getAbsolutePath()));
-
         String testClassesDirPath = "";
         SourceSetOutput testOutput = testSourceSet.getOutput();
         Set<File> testClassesDirs = testOutput.getClassesDirs().getFiles();
-        for (File dir : testClassesDirs) {
-            // System.out.println("main: " + dir.getAbsolutePath());
-            classPaths.add(new File(dir.getAbsolutePath()));
-        }
 
-        // 現在の方式ではディレクトリのパスとテストクラスのバイナリ名から .class ファイルを読み込むため，
-        // テストクラスのビルド時の生成ファイルを出力するディレクトリが複数の場合はとりあえず解析不可能としておく
         if (testClassesDirs.size() == 1) {
             for (File dir : testClassesDirs) {
                 // System.out.println("test: " + dir.getAbsolutePath());
@@ -125,10 +98,11 @@ public class SniffTask extends DefaultTask {
         }
 
         // URLClassLoader 生成
+        Set<File> classPaths = FileReader.getClassPaths(testSourceSet);
         URL[] urls = FileSetConverter.toURLs(classPaths);
         ClassLoader parent = SniffTask.class.getClassLoader();
-        final MemoryClassLoader loader = new MemoryClassLoader(urls, parent);
-
+        final JUnitMemoryClassLoader loader = new JUnitMemoryClassLoader(urls, parent, isJUnit5);
+        Thread.currentThread().setContextClassLoader(loader);
         // 動的解析
         final DynamicAnalyzer da = new DynamicAnalyzer(sa.getTestClassNames(), sa.getTestClassNamesToExecuted(),
                 testClassesDirPath);

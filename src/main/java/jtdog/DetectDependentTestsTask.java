@@ -2,7 +2,6 @@ package jtdog;
 
 import java.io.File;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.Set;
 
 import org.gradle.api.DefaultTask;
@@ -10,9 +9,9 @@ import org.gradle.api.Project;
 import org.gradle.api.plugins.JavaPluginConvention;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.SourceSet;
-import org.gradle.api.tasks.SourceSetOutput;
 import org.gradle.api.tasks.TaskAction;
 
+import jtdog.dynamic.JUnitMemoryClassLoader;
 import jtdog.dynamic.TestDependencyDetector;
 import jtdog.file.FileReader;
 import jtdog.file.FileSetConverter;
@@ -31,8 +30,6 @@ public class DetectDependentTestsTask extends DefaultTask {
 
     @TaskAction
     void detectTaskAction() throws Exception {
-        SourceSet mainSourceSet = getProject().getConvention().getPlugin(JavaPluginConvention.class).getSourceSets()
-                .getByName("main");
         SourceSet testSourceSet = getProject().getConvention().getPlugin(JavaPluginConvention.class).getSourceSets()
                 .getByName("test");
 
@@ -43,34 +40,14 @@ public class DetectDependentTestsTask extends DefaultTask {
             isJUnit5 = false;
         }
 
-        final Set<File> classPaths = FileReader.getExternalJarFiles(getProject());
+        // final Set<File> classPaths = FileReader.getExternalJarFiles(getProject());
+        final Set<File> classPaths = FileReader.getClassPaths(testSourceSet);
         // classpath にソースファイルのパスを追加
-        SourceSetOutput mainOutput = mainSourceSet.getOutput();
-        Set<File> mainClassesDirs = mainOutput.getClassesDirs().getFiles();
-        for (File dir : mainClassesDirs) {
-            classPaths.add(new File(dir.getAbsolutePath()));
-        }
-        SourceSetOutput testOutput = testSourceSet.getOutput();
-        Set<File> testClassesDirs = testOutput.getClassesDirs().getFiles();
-        for (File dir : testClassesDirs) {
-            classPaths.add(new File(dir.getAbsolutePath()));
-        }
-
-        Set<File> mainResources = mainSourceSet.getResources().getSrcDirs();
-        for (File dir : mainResources) {
-            classPaths.add(new File(dir.getAbsolutePath()));
-        }
-
-        Set<File> testResources = testSourceSet.getResources().getSrcDirs();
-        for (File dir : testResources) {
-            classPaths.add(new File(dir.getAbsolutePath()));
-        }
-
-        classPaths.add(new File(getProject().getProjectDir().getAbsolutePath()));
-
         URL[] urls = FileSetConverter.toURLs(classPaths);
         ClassLoader parent = DetectDependentTestsTask.class.getClassLoader();
-        final URLClassLoader loader = new URLClassLoader(urls, parent);
+        // final URLClassLoader loader = new URLClassLoader(urls, parent);
+        final JUnitMemoryClassLoader loader = new JUnitMemoryClassLoader(urls, parent, isJUnit5);
+        Thread.currentThread().setContextClassLoader(loader);
 
         TestDependencyDetector detector = new TestDependencyDetector();
         detector.run(loader, isJUnit5);
