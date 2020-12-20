@@ -124,7 +124,7 @@ public class JUnit5TestRunner {
                     // for debug
                     System.out.println("test fail: " + testIdentifier.getDisplayName());
                     DebugWriter.writeResult(source.getMethodName() + " in " + testClassName + ": "
-                            + testExecutionResult.getThrowable().toString(), "normal");
+                            + testExecutionResult.getThrowable().get().getMessage(), "normal");
 
                     property.setWasSuccessful(false);
                     testResultsInDefaultOrder.put(getTestMethodFQN(testIdentifier), false);
@@ -533,7 +533,7 @@ public class JUnit5TestRunner {
                     MethodSource source = (MethodSource) testIdentifier.getSource().get();
                     String testMethodName = source.getClassName() + "." + source.getMethodName();
                     MethodProperty testMethodProperty = methodList.getPropertyByName(testMethodName);
-                    System.out.println("flaky");
+                    // System.out.println("flaky");
                     if (!testMethodProperty.getTestSmellTypes().contains(MethodProperty.FLAKY)) {
                         testMethodProperty.addTestSmellType(MethodProperty.FLAKY);
                     }

@@ -81,6 +81,7 @@ public class JUnit4TestRunner {
             // for debug
             System.out.println("test fail: " + failure.getMessage() + " in " + failure.getDescription().getClassName()
                     + "." + failure.getDescription().getMethodName());
+            // System.out.println(failure.getException());
 
             testResultsInDefaultOrder.put(getTestMethodFQN(description), false);
 
@@ -483,7 +484,7 @@ public class JUnit4TestRunner {
             for (int i = 0; i < numberOfTimes; i++) {
                 Result result = junit.run(Request.method(clazz, methodName));
                 if (result.wasSuccessful()) {
-                    System.out.println("flaky");
+                    // System.out.println("flaky");
                     return true;
                 }
             }
