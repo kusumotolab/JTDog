@@ -2,8 +2,10 @@ package jtdog._static;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jdt.core.JavaCore;
@@ -88,7 +90,7 @@ public class StaticAnalyzer {
      * @return
      */
     private boolean hasAssertionIndirectly(final MethodIdentifier identifier, final MethodProperty methodProperty,
-            MethodList methodList, final MethodIdentifier caller) {
+            MethodList methodList, final Set<MethodIdentifier> callers) {
         boolean hasAssertion = false;
 
         for (final InvocationMethod invocation : methodProperty.getInvocationList()) {
@@ -97,7 +99,7 @@ public class StaticAnalyzer {
             // あるいは再帰呼び出しを行う場合
             if ((invocationProperty = methodList.getPropertyByIdentifier(invocation.getMethodIdentifier())) == null
                     || identifier.equals(invocation.getMethodIdentifier())
-                    || invocation.getMethodIdentifier().equals(caller)) {
+                    || callers.contains(invocation.getMethodIdentifier())) {
                 continue;
             }
 
@@ -105,8 +107,10 @@ public class StaticAnalyzer {
                 hasAssertion = true;
                 break;
             } else {
+                Set<MethodIdentifier> tmp = new HashSet<>(callers);
+                tmp.add(identifier);
                 hasAssertion = hasAssertionIndirectly(invocation.getMethodIdentifier(), invocationProperty, methodList,
-                        identifier);
+                        tmp);
             }
         }
 
@@ -121,7 +125,9 @@ public class StaticAnalyzer {
     private void detectTestSmellsStatically(MethodList methodList) {
         for (final MethodIdentifier identifier : methodList.getMethodIdentifierList()) {
             final MethodProperty property = methodList.getPropertyByIdentifier(identifier);
-            final boolean hasAssertionIndirectly = hasAssertionIndirectly(identifier, property, methodList, identifier);
+            Set<MethodIdentifier> callers = new HashSet<>();
+            callers.add(identifier);
+            final boolean hasAssertionIndirectly = hasAssertionIndirectly(identifier, property, methodList, callers);
             property.setHasAssertionIndirectly(hasAssertionIndirectly);
 
             // ローカルクラスや匿名クラスで宣言されたメソッドの場合は絶対にテストメソッドではないのでスキップ
