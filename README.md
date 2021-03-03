@@ -29,3 +29,16 @@ buildscript {
 apply plugin: 'com.github.m-tanigt.jtdog'
 ```
 
+## Configuring The Plugin
+```groovy
+sniff {
+  junitVersion = version
+  rerunFailure = times
+  runInRondomOrder = times
+}
+```
+| Property | Type | Description |
+|----------|------|-------------|
+| junitVersion | integer | The JUnit version you use. Default to `4`. You can use JUnit5 by setting the value of this property to `5`. If you are using JUnit3, set it to `4` (because JUnit4 runner can run JUnit3 test).|
+| rerunFailure | integer | Number of times to rerun a failed test. Default to `10`.|
+| runInRondomOrder | integer | Number of times to run tests in random order. Default to `10`.|
