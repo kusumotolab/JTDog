@@ -18,11 +18,11 @@ dependencies {
     implementation group: 'junit', name: 'junit', version: '4.13'
 }
 
-sourceCompatibility = 8
-targetCompatibility = 8
+sourceCompatibility = 11
+targetCompatibility = 11
 
 group 'com.github.m-tanigt'
-version '0.8.0'
+version '1.0.0'
 
 gradlePlugin {
     plugins {

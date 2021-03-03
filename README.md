@@ -8,7 +8,7 @@ JTDog is a Gradle plugin for dynamic test smells detection.
 Using the [plugins DSL](https://docs.gradle.org/current/userguide/plugins.html#sec:plugins_block):
 ```groovy
 plugins {
-    id 'com.github.m-tanigt.jtdog' version '0.8.0'
+    id 'com.github.m-tanigt.jtdog' version '1.0.0'
 }
 ```
 
@@ -21,7 +21,7 @@ buildscript {
     }
   }
   dependencies {
-    classpath "gradle.plugin.com.github.m-tanigt:jtdog-plugin:0.8.0"
+    classpath "gradle.plugin.com.github.m-tanigt:jtdog-plugin:1.0.0"
   }
 }
 
