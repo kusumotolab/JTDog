@@ -2,7 +2,6 @@ plugins {
     id 'java-gradle-plugin'
     id 'java'
 
-    //id 'maven-publish'
     id "com.gradle.plugin-publish" version "0.13.0"
 }
 
@@ -19,15 +18,12 @@ dependencies {
     implementation group: 'junit', name: 'junit', version: '4.13'
 }
 
-//sourceCompatibility = 11
-//targetCompatibility = 11
-
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+sourceCompatibility = 11
+targetCompatibility = 11
 
 group 'com.github.kusumotolab'
-//version '1.0.0'
-version '0.8.0'
+version '1.0.0'
+
 gradlePlugin {
     plugins {
         jtdog {
@@ -54,10 +50,3 @@ pluginBundle {
   }
 }
 
-/*publishing {
-    repositories {
-        maven {
-            url "../../repos/maven-repo"
-        }
-    }
-}*/
