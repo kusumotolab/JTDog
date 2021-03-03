@@ -1,6 +1,7 @@
 package jtdog;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -28,19 +29,17 @@ public class SniffTask extends DefaultTask {
     @Input
     private Project project;
 
-    public Project getProject() {
-        return project;
-    }
-
-    public void setProject(final Project project) {
-        this.project = project;
-    }
+    private int junitVersion = 4;
+    private int rerunFailure = 10;
+    private int runInRondomOrder = 10;
 
     @TaskAction
     void sniffTaskAction() throws Exception {
-        recursiveDeleteFile(new File("out_coverage"));
-        recursiveDeleteFile(new File("out_result"));
-        analyzeJavaTests(getProject());
+        try {
+            analyzeJavaTests(getProject());
+        } catch (Exception e) {
+            recursiveDeleteFile(new File("jtdog_tmp"));
+        }
     }
 
     void analyzeJavaTests(Project project) throws Exception {
@@ -56,12 +55,12 @@ public class SniffTask extends DefaultTask {
         final String[] externalJarFilePaths = FileSetConverter.toAbsolutePathArray(externalJarFiles);
 
         // property により JUnit5 かどうか判断
-        boolean isJUnit5;
-        if (project.hasProperty("junit5")) {
+        boolean isJUnit5 = getJunitVersion() == 5 ? true : false;
+        /*if (project.hasProperty("junit5")) {
             isJUnit5 = project.findProperty("junit5").equals("true") ? true : false;
         } else {
             isJUnit5 = false;
-        }
+        }*/
 
         // 解析するソースコードのパス
         final Set<File> testSourceFiles = testSourceSet.getJava().getFiles();
@@ -69,9 +68,14 @@ public class SniffTask extends DefaultTask {
 
         // java ファイルが直下にあるすべてのディレクトリのパス
         Set<File> sourceFiles = new HashSet<>();
-        sourceFiles.addAll(testSourceSet.getJava().getSrcDirs());
-        sourceFiles.addAll(mainSourceSet.getJava().getSrcDirs());
+        //sourceFiles.addAll(testSourceSet.getJava().getSrcDirs());
+        //sourceFiles.addAll(mainSourceSet.getJava().getSrcDirs());
+        addDirsContainingJava(sourceFiles, mainSourceSet);
+        addDirsContainingJava(sourceFiles, testSourceSet);
         final String[] sourcepathDirs = FileSetConverter.toAbsolutePathArray(sourceFiles);
+        //for (String string : sourcepathDirs) {
+            //System.out.println("dir: "+string);
+        //}
 
         // 静的解析
         final StaticAnalyzer sa = new StaticAnalyzer(sources, sourcepathDirs, externalJarFilePaths);
@@ -114,13 +118,7 @@ public class SniffTask extends DefaultTask {
             p = p.getParent();
         }
 
-        boolean skipDetectDependency;
-        if (project.hasProperty("skip")) {
-            skipDetectDependency = project.findProperty("skip").equals("true") ? true : false;
-        } else {
-            skipDetectDependency = false;
-        }
-        da.run(methodList, loader, projectName, isJUnit5, skipDetectDependency);
+        da.run(methodList, loader, projectName, isJUnit5, getRerunFailure(), getRunInRondomOrder());
 
         // generate result JSON file
         final TaskResult result = new TaskResult();
@@ -205,4 +203,73 @@ public class SniffTask extends DefaultTask {
         // 対象がファイルもしくは配下が空のディレクトリの場合は削除する
         file.delete();
     }
+
+    private void addDirsContainingJava(Set<File> files, SourceSet sourceSet){
+        for (File file : sourceSet.getJava().getSrcDirs()) {
+            if(containsJavaFile(file)){
+                files.add(file);
+            }
+        }
+    }
+
+    private boolean containsJavaFile(File root){
+        if(!root.exists()){
+            return false;
+        }
+        FilenameFilter filter = new FilenameFilter(){
+            @Override
+            public boolean accept(File file, String name) {
+                if(name.endsWith(".java")){
+                    return true;
+                }
+                return false;
+            }
+        };
+
+        if(root.list(filter).length > 0){
+            return true;
+        }
+
+        for (File file : root.listFiles()) {
+            if(file.isDirectory() && containsJavaFile(file)){
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public Project getProject() {
+        return project;
+    }
+
+    public void setProject(final Project project) {
+        this.project = project;
+    }
+
+    public int getJunitVersion() {
+        return junitVersion;
+    }
+
+    public void setJunitVersion(int junitVersion){
+        this.junitVersion = junitVersion;
+    }
+
+    public int getRerunFailure() {
+        return rerunFailure;
+    }
+
+    public void setRerunFailure(int rerunFailure) {
+        this.rerunFailure = rerunFailure;
+    }
+
+    public int getRunInRondomOrder() {
+        return runInRondomOrder;
+    }
+
+    public void setRunInRondomOrder(int runInRondomOrder) {
+        this.runInRondomOrder = runInRondomOrder;
+    }
+
+
 }

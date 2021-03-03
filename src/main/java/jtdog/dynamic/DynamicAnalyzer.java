@@ -15,14 +15,11 @@ import org.jacoco.core.runtime.IRuntime;
 import org.jacoco.core.runtime.LoggerRuntime;
 import org.jacoco.core.runtime.RuntimeData;
 
-import jtdog.file.DebugWriter;
 import jtdog.file.ObjectSerializer;
 import jtdog.method.MethodList;
 import jtdog.method.MethodProperty;
 
 public class DynamicAnalyzer {
-    private final static int RANDOMIZED_TRIALS = 10;
-
     private final List<String> testClassNames;
     private final List<String> testClassNamesToExecuted;
     private final String testClassesDirPath;
@@ -49,7 +46,7 @@ public class DynamicAnalyzer {
 
     // テスト以外のクラスも instrumenter を適用すべき？
     public void run(final MethodList methodList, final MemoryClassLoader memoryClassLoader, final String projectName,
-            final boolean isJUnit5, final boolean skipDetectDependency) throws Exception {
+            final boolean isJUnit5, final int rerunFailure, final int runInRondomOrder) throws Exception {
         // テストクラスすべてに instrumenter を適用
         for (String testClassName : testClassNames) {
             try {
@@ -67,16 +64,10 @@ public class DynamicAnalyzer {
 
         if (isJUnit5) {
             JUnit5TestRunner runner = new JUnit5TestRunner(testClassesDirPath, jacocoRuntimeData);
-            runner.run(methodList, testClasses);
+            runner.run(methodList, testClasses, rerunFailure);
         } else {
             JUnit4TestRunner runner = new JUnit4TestRunner(testClassesDirPath, jacocoRuntimeData);
-            runner.run(methodList, testClasses);
-        }
-
-        if (skipDetectDependency) {
-            File tmpDirectory = new File("jtdog_tmp");
-            recursiveDeleteFile(tmpDirectory);
-            return;
+            runner.run(methodList, testClasses, rerunFailure);
         }
 
         ObjectSerializer.serializeObject("jtdog_tmp/testClassNamesToExecuted.ser", testClassNamesToExecuted);
@@ -85,15 +76,15 @@ public class DynamicAnalyzer {
 
         System.out.println("detecting dependent tests ...");
         // ランダムな順番でテスト実行を繰り返す
-        for (int i = 0; i < RANDOMIZED_TRIALS; i++) {
-            System.out.println("loop " + i);
+        for (int i = 0; i < runInRondomOrder; i++) {
+            //System.out.println("loop " + i);
             List<String> cmd = new ArrayList<String>();
             cmd.add("./gradlew");
             // 2回以上ネスとしているサブプロジェクトの場合だめ
             String taskName = (projectName.equals("")) ? "detectDependentTest" : projectName + ":detectDependentTest";
             cmd.add(taskName);
             if (isJUnit5) {
-                cmd.add("-Pjunit5=true");
+                cmd.add("-Pjtdog.junit5=true");
             }
             cmd.add("--stacktrace");
 
@@ -112,7 +103,6 @@ public class DynamicAnalyzer {
             p.destroy();
 
             dependentTests.addAll(deserializeHashMap("jtdog_tmp/dependentTests.ser"));
-            DebugWriter.writeResult(" *** " + i + " *** ", "detect");
         }
 
         for (String fqn : dependentTests) {

@@ -34,8 +34,8 @@ public class DetectDependentTestsTask extends DefaultTask {
                 .getByName("test");
 
         boolean isJUnit5;
-        if (getProject().hasProperty("junit5")) {
-            isJUnit5 = getProject().findProperty("junit5").equals("true") ? true : false;
+        if (getProject().hasProperty("jtdog.junit5")) {
+            isJUnit5 = getProject().findProperty("jtdog.junit5").equals("true") ? true : false;
         } else {
             isJUnit5 = false;
         }
@@ -51,6 +51,5 @@ public class DetectDependentTestsTask extends DefaultTask {
 
         TestDependencyDetector detector = new TestDependencyDetector();
         detector.run(loader, isJUnit5);
-
     }
 }

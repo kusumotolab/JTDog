@@ -15,14 +15,14 @@ public class JTDogPlugin implements Plugin<Project> {
     public void apply(final Project project) {
         registerTasks(project);
         // Register a task
-        Set<Project> subProjects = project.getSubprojects();
+        /*Set<Project> subProjects = project.getSubprojects();
         if (!subProjects.isEmpty()) {
             // registerTasks(project);
             // } else {
             for (Project subProject : subProjects) {
                 registerTasks(subProject);
             }
-        }
+        }*/
 
     }
 
@@ -41,7 +41,6 @@ public class JTDogPlugin implements Plugin<Project> {
         });
 
         project.getTasks().register("detectDependentTests", DetectDependentTestsTask.class, task ->
-
         {
             task.setProject(project);
             task.setDescription("Do not use.");

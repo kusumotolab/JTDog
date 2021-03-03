@@ -30,14 +30,12 @@ import org.junit.platform.launcher.TestIdentifier;
 import org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder;
 import org.junit.platform.launcher.core.LauncherFactory;
 
-import jtdog.file.DebugWriter;
 import jtdog.file.ObjectSerializer;
 import jtdog.method.InvocationMethod;
 import jtdog.method.MethodList;
 import jtdog.method.MethodProperty;
 
 public class JUnit5TestRunner {
-    private final static int RERUN_TIMES = 20;
     private final String testClassesDirPath;
     private final RuntimeData jacocoRuntimeData;
 
@@ -48,7 +46,7 @@ public class JUnit5TestRunner {
         this.jacocoRuntimeData = jacocoRuntimeData;
     }
 
-    public void run(final MethodList methodList, final List<Class<?>> testClasses) throws Exception {
+    public void run(final MethodList methodList, final List<Class<?>> testClasses, final int rerunFailure) throws Exception {
         final HashMap<String, Boolean> testResultsInDefaultOrder = new HashMap<>();
         final HashMap<String, ArrayList<String>> testClassNameToDefaultExecutionOrder = new HashMap<>();
 
@@ -58,7 +56,7 @@ public class JUnit5TestRunner {
         Launcher launcher = LauncherFactory.create();
 
         TestExecutionListener listener = new CoverageMeasurementListener(methodList, testResultsInDefaultOrder,
-                testClassNameToDefaultExecutionOrder);
+                testClassNameToDefaultExecutionOrder, rerunFailure);
         launcher.execute(request, listener);
 
         ObjectSerializer.serializeObject("jtdog_tmp/testResultsInDefaultOrder.ser", testResultsInDefaultOrder);
@@ -78,13 +76,16 @@ public class JUnit5TestRunner {
         private final MethodList methodList;
         private final HashMap<String, Boolean> testResultsInDefaultOrder;
         private final HashMap<String, ArrayList<String>> testClassNameToDefaultExecutionOrder;
+        private final int rerunFailure;
 
         public CoverageMeasurementListener(final MethodList methodList,
                 final HashMap<String, Boolean> testResultsInDefaultOrder,
-                final HashMap<String, ArrayList<String>> testClassNameToDefaultExecutionOrder) {
+                final HashMap<String, ArrayList<String>> testClassNameToDefaultExecutionOrder, 
+                final int rerunFailure) {
             this.methodList = methodList;
             this.testResultsInDefaultOrder = testResultsInDefaultOrder;
             this.testClassNameToDefaultExecutionOrder = testClassNameToDefaultExecutionOrder;
+            this.rerunFailure = rerunFailure;
         }
 
         @Override
@@ -102,7 +103,7 @@ public class JUnit5TestRunner {
             try {
                 MethodSource source = (MethodSource) testIdentifier.getSource().get();
                 String testClassName = source.getClassName();
-                System.out.println("finish: " + source.getMethodName() + " in " + testClassName);
+                //System.out.println("finish: " + source.getMethodName() + " in " + testClassName);
                 if (testClassNameToDefaultExecutionOrder.containsKey(testClassName)) {
                     testClassNameToDefaultExecutionOrder.get(testClassName).add(source.getMethodName());
                 } else {
@@ -122,14 +123,12 @@ public class JUnit5TestRunner {
                     }
                 } else if (status == Status.FAILED) {
                     // for debug
-                    System.out.println("test fail: " + testIdentifier.getDisplayName());
-                    DebugWriter.writeResult(source.getMethodName() + " in " + testClassName + ": "
-                            + testExecutionResult.getThrowable().get().getMessage(), "normal");
+                    //System.out.println("test fail: " + testIdentifier.getDisplayName());
 
                     property.setWasSuccessful(false);
                     testResultsInDefaultOrder.put(getTestMethodFQN(testIdentifier), false);
                     // identify flaky test failure
-                    reRun(RERUN_TIMES, source.getJavaClass(), source.getMethodName());
+                    reRun(rerunFailure, source.getJavaClass(), source.getMethodName());
                 }
             } catch (Exception e) {
 
@@ -153,18 +152,6 @@ public class JUnit5TestRunner {
 
             // 各アサーションが実行されているか調べる
             MethodProperty testMethodProperty = getTestMethodProperty(testIdentifier);
-            for (IClassCoverage coverage : coverages) {
-                String testClassName = coverage.getName().replace("/", ".");
-                for (int i = coverage.getFirstLine(); i <= coverage.getLastLine(); i++) {
-                    if (!getColor(coverage.getLine(i).getStatus()).equals("")) {
-                        DebugWriter.writeCoverage("Line " + Integer.valueOf(i) + ": "
-                                + getColor(coverage.getLine(i).getStatus()) + " in " + testClassName,
-                                getTestMethodFQN(testIdentifier));
-                    }
-                }
-                // checkInvocationExecuted(coverage, testMethodProperty, rottenLines,
-                // classNameToCoverage, testClassName);
-            }
             MethodSource source = (MethodSource) testIdentifier.getSource().get();
             IClassCoverage coverage = classNameToCoverage.get(source.getClassName());
             String testClassName = coverage.getName().replace("/", ".");
@@ -292,11 +279,6 @@ public class JUnit5TestRunner {
             // 実行されていない(color = "red" or "") invocation を含むか調べる
             for (InvocationMethod invocation : property.getInvocationList()) {
                 int line = invocation.getLineNumber();
-
-                DebugWriter.writeCoverage(
-                        "invoked " + invocation.getMethodIdentifier().getBinaryName() + " in line " + line,
-                        property.getBinaryName() + "-lines");
-
                 String color = getColor(coverage.getLine(line).getStatus());
                 // helper かどうか調べるため，isInvoke の値をセット
                 MethodProperty invocationProperty = methodList

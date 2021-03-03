@@ -23,14 +23,12 @@ import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
 
-import jtdog.file.DebugWriter;
 import jtdog.file.ObjectSerializer;
 import jtdog.method.InvocationMethod;
 import jtdog.method.MethodList;
 import jtdog.method.MethodProperty;
 
 public class JUnit4TestRunner {
-    private final static int RERUN_TIMES = 20;
     private final String testClassesDirPath;
     private final RuntimeData jacocoRuntimeData;
 
@@ -39,11 +37,11 @@ public class JUnit4TestRunner {
         this.jacocoRuntimeData = jacocoRuntimeData;
     }
 
-    public void run(final MethodList methodList, final List<Class<?>> testClasses) throws Exception {
+    public void run(final MethodList methodList, final List<Class<?>> testClasses, final int rerunFailure) throws Exception {
         // JUnit runner を使用
         final JUnitCore junit = new JUnitCore();
         final HashMap<String, Boolean> testResultsInDefaultOrder = new HashMap<>();
-        final RunListener listener = new CoverageMeasurementListener(methodList, testResultsInDefaultOrder);
+        final RunListener listener = new CoverageMeasurementListener(methodList, testResultsInDefaultOrder, rerunFailure);
         junit.addListener(listener);
         junit.run(testClasses.toArray(new Class<?>[testClasses.size()]));
 
@@ -52,15 +50,16 @@ public class JUnit4TestRunner {
 
     class CoverageMeasurementListener extends RunListener {
         private final MethodList methodList;
-
         private boolean isTestSuccessful;
         private HashMap<String, Boolean> testResultsInDefaultOrder;
+        private int rerunFailure;
 
         public CoverageMeasurementListener(final MethodList methodList,
-                final HashMap<String, Boolean> testResultsInDefaultOrder) {
+                final HashMap<String, Boolean> testResultsInDefaultOrder, int rerunFailure) {
             this.methodList = methodList;
             this.testResultsInDefaultOrder = testResultsInDefaultOrder;
             this.isTestSuccessful = true;
+            this.rerunFailure = rerunFailure;
         }
 
         @Override
@@ -79,16 +78,14 @@ public class JUnit4TestRunner {
             Description description = failure.getDescription();
 
             // for debug
-            System.out.println("test fail: " + failure.getMessage() + " in " + failure.getDescription().getClassName()
-                    + "." + failure.getDescription().getMethodName());
+            //System.out.println("test fail: " + failure.getMessage() + " in " + failure.getDescription().getClassName()
+            //        + "." + failure.getDescription().getMethodName());
             // System.out.println(failure.getException());
 
             testResultsInDefaultOrder.put(getTestMethodFQN(description), false);
 
-            DebugWriter.writeResult(getTestMethodFQN(description) + ": " + failure.getTrace(), "normal");
-
             // identify flaky test failure
-            if (reRun(RERUN_TIMES, description.getTestClass(), description.getMethodName())) {
+            if (reRun(rerunFailure, description.getTestClass(), description.getMethodName())) {
                 // this test method is flaky
                 MethodProperty testMethodProperty = getTestMethodProperty(description);
                 testMethodProperty.addTestSmellType(MethodProperty.FLAKY);
@@ -108,8 +105,8 @@ public class JUnit4TestRunner {
         @Override
         public void testFinished(final Description description) throws IOException {
             // for debug
-            System.out.println(
-                    "finish: " + description.getMethodName() + " in " + description.getTestClass().getCanonicalName());
+            //System.out.println(
+            //        "finish: " + description.getMethodName() + " in " + description.getTestClass().getCanonicalName());
 
             if (isTestSuccessful) {
                 getTestMethodProperty(description).setWasSuccessful(true);
@@ -167,19 +164,6 @@ public class JUnit4TestRunner {
 
             // 各アサーションが実行されているか調べる
             MethodProperty testMethodProperty = getTestMethodProperty(description);
-            for (IClassCoverage coverage : coverages) {
-                String testClassName = coverage.getName().replace("/", ".");
-                for (int i = coverage.getFirstLine(); i <= coverage.getLastLine(); i++) {
-                    if (!getColor(coverage.getLine(i).getStatus()).equals("")) {
-                        DebugWriter.writeCoverage("Line " + Integer.valueOf(i) + ": "
-                                + getColor(coverage.getLine(i).getStatus()) + " in " + testClassName,
-                                getTestMethodFQN(description));
-                    }
-                }
-                // checkInvocationExecuted(coverage, testMethodProperty, rottenLines,
-                // classNameToCoverage, testClassName);
-            }
-
             IClassCoverage coverage = classNameToCoverage.get(description.getClassName());
             String testClassName = coverage.getName().replace("/", ".");
             checkInvocationExecuted(coverage, testMethodProperty, rottenLines, classNameToCoverage, testClassName);
@@ -272,10 +256,6 @@ public class JUnit4TestRunner {
             // 実行されていない(color = "red" or "") invocation を含むか調べる
             for (InvocationMethod invocation : property.getInvocationList()) {
                 int line = invocation.getLineNumber();
-
-                DebugWriter.writeCoverage(
-                        "invoked " + invocation.getMethodIdentifier().getBinaryName() + " in line " + line,
-                        property.getBinaryName() + "-lines");
 
                 String color = getColor(coverage.getLine(line).getStatus());
                 // helper かどうか調べるため，isInvoke の値をセット

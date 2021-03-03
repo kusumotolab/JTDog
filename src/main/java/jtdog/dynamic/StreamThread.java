@@ -21,7 +21,7 @@ public class StreamThread extends Thread {
             String line = null;
             while ((line = br.readLine()) != null) {
                 // ログなど出力する
-                System.out.println(type + ">" + line);
+                //System.out.println(type + ">" + line);
             }
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();

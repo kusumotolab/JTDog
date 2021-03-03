@@ -28,7 +28,6 @@ import org.junit.runner.manipulation.Ordering;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
 
-import jtdog.file.DebugWriter;
 import jtdog.file.ObjectSerializer;
 
 public class TestDependencyDetector {
@@ -78,10 +77,7 @@ public class TestDependencyDetector {
                         boolean defaultResult = testResultsInDefaultOrder.get(testMethodFQN);
                         boolean wasTestSuccessful = testExecutionResult.getStatus() == Status.SUCCESSFUL ? true : false;
                         if (testExecutionResult.getStatus() == Status.FAILED) {
-                            System.out.println("fail: " + testMethodFQN + ", " + testExecutionResult.getThrowable());
-                            DebugWriter.writeResult(
-                                    testMethodFQN + ": " + testExecutionResult.getThrowable().get().getMessage(),
-                                    "detect");
+                            //System.out.println("fail: " + testMethodFQN + ", " + testExecutionResult.getThrowable());
                         }
 
                         // デフォルトの実行順でのテスト結果と異なる場合は test dependency
@@ -212,8 +208,7 @@ public class TestDependencyDetector {
         @Override
         public void testFailure(Failure failure) throws Exception {
             wasTestSuccessful = false;
-            System.out.println("failed in " + failure.getDescription().getMethodName() + ": " + failure.getMessage());
-            DebugWriter.writeResult(getTestMethodFQN(failure.getDescription()) + ": " + failure.getMessage(), "detect");
+            //System.out.println("failed in " + failure.getDescription().getMethodName() + ": " + failure.getMessage());
             super.testFailure(failure);
         }
 
