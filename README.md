@@ -69,7 +69,7 @@ This feature is in its testing phase.
 
 | Name | Description |
 | ---- | ---- |
-| `Annotation Free Test` | A method considered to be test method. The Depeloper forgot to add `@Test` annotation or commented it out.|
+| `Annotation Free Test` | A method considered to be test method. The depeloper forgot to add `@Test` annotation or commented it out.|
 | `Empty Test` | A test that do not contain executable statements. |
 | `Ignored Test` | A test annotated by the @Ignore. |
 | `Smoke Test` | A test that do not contain any assertions. |
