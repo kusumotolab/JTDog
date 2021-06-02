@@ -19,7 +19,7 @@ public class MethodProperty {
     public static final String SKIP = "rotten_skip";
     public static final String EMPTY = "empty";
     public static final String FLAKY = "flaky";
-    public static final String TEST_DEPENDENCY = "test_dependency";
+    public static final String DEPENDENT = "dependent";
 
     private boolean hasAssertionDirectly;
     private boolean hasAssertionIndirectly;

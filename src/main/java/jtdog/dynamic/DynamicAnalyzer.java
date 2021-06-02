@@ -46,7 +46,7 @@ public class DynamicAnalyzer {
 
     // テスト以外のクラスも instrumenter を適用すべき？
     public void run(final MethodList methodList, final MemoryClassLoader memoryClassLoader, final String projectName,
-            final boolean isJUnit5, final int rerunFailure, final int runInRondomOrder) throws Exception {
+            final boolean isJUnit5, final int rerunFailure, final int runInRandomOrder) throws Exception {
         // テストクラスすべてに instrumenter を適用
         for (String testClassName : testClassNames) {
             try {
@@ -76,8 +76,8 @@ public class DynamicAnalyzer {
 
         System.out.println("detecting dependent tests ...");
         // ランダムな順番でテスト実行を繰り返す
-        for (int i = 0; i < runInRondomOrder; i++) {
-            //System.out.println("loop " + i);
+        for (int i = 0; i < runInRandomOrder; i++) {
+            // System.out.println("loop " + i);
             List<String> cmd = new ArrayList<String>();
             cmd.add("./gradlew");
             // 2回以上ネスとしているサブプロジェクトの場合だめ
@@ -86,7 +86,7 @@ public class DynamicAnalyzer {
             if (isJUnit5) {
                 cmd.add("-Pjtdog.junit5=true");
             }
-            cmd.add("--stacktrace");
+            // cmd.add("--stacktrace");
 
             Process p = Runtime.getRuntime().exec(cmd.toArray(new String[cmd.size()]));
             // 出力ストリーム
@@ -108,7 +108,7 @@ public class DynamicAnalyzer {
         for (String fqn : dependentTests) {
             MethodProperty testMethodProperty = methodList.getPropertyByName(fqn);
             if (!testMethodProperty.getTestSmellTypes().contains(MethodProperty.FLAKY)) {
-                testMethodProperty.addTestSmellType(MethodProperty.TEST_DEPENDENCY);
+                testMethodProperty.addTestSmellType(MethodProperty.DEPENDENT);
             }
         }
 

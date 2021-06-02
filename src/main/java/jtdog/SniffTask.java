@@ -31,7 +31,8 @@ public class SniffTask extends DefaultTask {
 
     private int junitVersion = 4;
     private int rerunFailure = 10;
-    private int runInRondomOrder = 10;
+    private int runInRandomOrder = 10;
+    private boolean detectStaticSmells = false;
 
     @TaskAction
     void sniffTaskAction() throws Exception {
@@ -56,11 +57,11 @@ public class SniffTask extends DefaultTask {
 
         // property により JUnit5 かどうか判断
         boolean isJUnit5 = getJunitVersion() == 5 ? true : false;
-        /*if (project.hasProperty("junit5")) {
-            isJUnit5 = project.findProperty("junit5").equals("true") ? true : false;
-        } else {
-            isJUnit5 = false;
-        }*/
+        /*
+         * if (project.hasProperty("junit5")) { isJUnit5 =
+         * project.findProperty("junit5").equals("true") ? true : false; } else {
+         * isJUnit5 = false; }
+         */
 
         // 解析するソースコードのパス
         final Set<File> testSourceFiles = testSourceSet.getJava().getFiles();
@@ -68,14 +69,14 @@ public class SniffTask extends DefaultTask {
 
         // java ファイルが直下にあるすべてのディレクトリのパス
         Set<File> sourceFiles = new HashSet<>();
-        //sourceFiles.addAll(testSourceSet.getJava().getSrcDirs());
-        //sourceFiles.addAll(mainSourceSet.getJava().getSrcDirs());
+        // sourceFiles.addAll(testSourceSet.getJava().getSrcDirs());
+        // sourceFiles.addAll(mainSourceSet.getJava().getSrcDirs());
         addDirsContainingJava(sourceFiles, mainSourceSet);
         addDirsContainingJava(sourceFiles, testSourceSet);
         final String[] sourcepathDirs = FileSetConverter.toAbsolutePathArray(sourceFiles);
-        //for (String string : sourcepathDirs) {
-            //System.out.println("dir: "+string);
-        //}
+        // for (String string : sourcepathDirs) {
+        // System.out.println("dir: "+string);
+        // }
 
         // 静的解析
         final StaticAnalyzer sa = new StaticAnalyzer(sources, sourcepathDirs, externalJarFilePaths);
@@ -118,7 +119,7 @@ public class SniffTask extends DefaultTask {
             p = p.getParent();
         }
 
-        da.run(methodList, loader, projectName, isJUnit5, getRerunFailure(), getRunInRondomOrder());
+        da.run(methodList, loader, projectName, isJUnit5, getRerunFailure(), getRunInRandomOrder());
 
         // generate result JSON file
         final TaskResult result = new TaskResult();
@@ -160,7 +161,7 @@ public class SniffTask extends DefaultTask {
                 if (testSmellTypes.contains(MethodProperty.FLAKY)) {
                     flaky++;
                 }
-                if (testSmellTypes.contains(MethodProperty.TEST_DEPENDENCY)) {
+                if (testSmellTypes.contains(MethodProperty.DEPENDENT)) {
                     testDependency++;
                 }
                 if (testSmellTypes.contains(MethodProperty.CONTEXT_DEPENDENT)) {
@@ -186,7 +187,7 @@ public class SniffTask extends DefaultTask {
         result.setNumberOfMissedFail(missedFail);
         result.setNumberOfSkip(skip);
 
-        jw.writeJSONFile(result, "out", project.getName() + "_result");
+        jw.writeJSONFile(result, "out", project.getName() + "_result", !detectStaticSmells);
     }
 
     private void recursiveDeleteFile(final File file) throws Exception {
@@ -204,34 +205,34 @@ public class SniffTask extends DefaultTask {
         file.delete();
     }
 
-    private void addDirsContainingJava(Set<File> files, SourceSet sourceSet){
+    private void addDirsContainingJava(Set<File> files, SourceSet sourceSet) {
         for (File file : sourceSet.getJava().getSrcDirs()) {
-            if(containsJavaFile(file)){
+            if (containsJavaFile(file)) {
                 files.add(file);
             }
         }
     }
 
-    private boolean containsJavaFile(File root){
-        if(!root.exists()){
+    private boolean containsJavaFile(File root) {
+        if (!root.exists()) {
             return false;
         }
-        FilenameFilter filter = new FilenameFilter(){
+        FilenameFilter filter = new FilenameFilter() {
             @Override
             public boolean accept(File file, String name) {
-                if(name.endsWith(".java")){
+                if (name.endsWith(".java")) {
                     return true;
                 }
                 return false;
             }
         };
 
-        if(root.list(filter).length > 0){
+        if (root.list(filter).length > 0) {
             return true;
         }
 
         for (File file : root.listFiles()) {
-            if(file.isDirectory() && containsJavaFile(file)){
+            if (file.isDirectory() && containsJavaFile(file)) {
                 return true;
             }
         }
@@ -251,7 +252,7 @@ public class SniffTask extends DefaultTask {
         return junitVersion;
     }
 
-    public void setJunitVersion(int junitVersion){
+    public void setJunitVersion(int junitVersion) {
         this.junitVersion = junitVersion;
     }
 
@@ -263,13 +264,12 @@ public class SniffTask extends DefaultTask {
         this.rerunFailure = rerunFailure;
     }
 
-    public int getRunInRondomOrder() {
-        return runInRondomOrder;
+    public int getRunInRandomOrder() {
+        return runInRandomOrder;
     }
 
-    public void setRunInRondomOrder(int runInRondomOrder) {
-        this.runInRondomOrder = runInRondomOrder;
+    public void setRunInRandomOrder(int runInRandomOrder) {
+        this.runInRandomOrder = runInRandomOrder;
     }
-
 
 }

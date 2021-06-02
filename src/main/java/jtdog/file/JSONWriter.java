@@ -10,13 +10,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import jtdog.TaskResult;
+
 public class JSONWriter {
 
-    public void writeJSONFile(final Object obj, final String dirPath, final String fileName)
+    public void writeJSONFile(final Object obj, final String dirPath, final String fileName, boolean mixIn)
             throws JsonGenerationException, JsonMappingException, IOException {
         final ObjectMapper mapper = new ObjectMapper();
         // JSON 文字列をインデントして見やすくする
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
+        if (mixIn) {
+            mapper.addMixInAnnotations(TaskResult.class, MixInForIgnoreStaticSmellDetectionResult.class);
+        }
         final ObjectWriter writer = mapper.writer(new DefaultPrettyPrinter());
 
         new File(dirPath).mkdirs();

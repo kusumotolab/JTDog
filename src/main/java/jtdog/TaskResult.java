@@ -9,6 +9,16 @@ import jtdog.method.MethodProperty;
 public class TaskResult {
     @JsonProperty("fully_rotten")
     private int numberOfRotten;
+    @JsonProperty("context_dependent")
+    private int numberOfContextDependent;
+    @JsonProperty("missed_fail")
+    private int numberOfMissedFail;
+    @JsonProperty("skip_test")
+    private int numberOfSkip;
+    @JsonProperty("flaky_test")
+    private int numberOfFlaky;
+    @JsonProperty("dependent_test")
+    private int numberOfTestDependency;
     @JsonProperty("smoke")
     private int numberOfSmoke;
     @JsonProperty("annotation_free")
@@ -17,16 +27,6 @@ public class TaskResult {
     private int numberOfIgnored;
     @JsonProperty("empty")
     private int numberOfEmpty;
-    @JsonProperty("flaky")
-    private int numberOfFlaky;
-    @JsonProperty("test_dependency")
-    private int numberOfTestDependency;
-    @JsonProperty("rotten_context_dependent")
-    private int numberOfContextDependent;
-    @JsonProperty("rotten_missed_fail")
-    private int numberOfMissedFail;
-    @JsonProperty("rotten_skip")
-    private int numberOfSkip;
 
     @JsonProperty("test_smells")
     private ArrayList<MethodProperty> test_smells;
