@@ -41,9 +41,10 @@ The detection results are output as a JSON file in the `out` directory.
 ## Configuration
 ```groovy
 sniff {
-  junitVersion = version
-  rerunFailure = times
-  runInRondomOrder = times
+  junitVersion = 4
+  rerunFailure = 10
+  runInRondomOrder = 10
+  detectStaticSmells = false
 }
 ```
 | Property | Type | Description |
@@ -51,6 +52,7 @@ sniff {
 | `junitVersion` | `integer` | The JUnit version you use. Default to `4`. You can use JUnit5 by setting the value of this property to `5`. If you are using JUnit3, set it to `4` (because JUnit4 runner can run JUnit3 test).|
 | `rerunFailure` | `integer` | Number of times to rerun a failed test. Default to `10`.|
 | `runInRondomOrder` | `integer` | Number of times to run tests in random order. Default to `10`.|
+| `detectStaticSmells` | `boolean` | Whether to detect static test smells. Default to `false`|
 
 ## Dynamic Test Smells
 | Name | Description |
@@ -62,7 +64,7 @@ sniff {
 | `Flaky Test` | A test that exhibits both a passing and a failing result with the same code. |
 | `Dependent Test` | A test that produces different results depending on the execution order. |
 
-## Other Test Smells
+## Static Test Smells
 JTDog can detect test smells other than the above.
 These are **NOT** dynamic test smells.
 This feature is in its testing phase.
