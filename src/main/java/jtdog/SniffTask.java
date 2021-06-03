@@ -272,4 +272,12 @@ public class SniffTask extends DefaultTask {
         this.runInRandomOrder = runInRandomOrder;
     }
 
+    public boolean isDetectStaticSmells() {
+        return detectStaticSmells;
+    }
+
+    public void setDetectStaticSmells(boolean detectStaticSmells) {
+        this.detectStaticSmells = detectStaticSmells;
+    }
+
 }
