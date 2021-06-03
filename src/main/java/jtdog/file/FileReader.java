@@ -40,7 +40,6 @@ public class FileReader {
      * @param rootDir   : root directory
      * @param extension : string needs to be contained as file extension
      * @param fileList  : list to add file paths
-     * @return : list of file absolute paths
      */
     public static void listUpFilePaths(Path rootDir, String extension, ArrayList<String> fileList) {
         String extensionPattern = "." + extension.toLowerCase();

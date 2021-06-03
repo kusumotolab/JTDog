@@ -41,7 +41,9 @@ public class StaticAnalyzer {
     /**
      * analyze Java unit tests statically.
      * 
-     * @param testSmells : list to save the analysis results.
+     * @param methodList
+     * @param isJUnit5
+     * @param detectStaticSmells
      * @throws IOException
      */
     public void run(final MethodList methodList, final boolean isJUnit5, final boolean detectStaticSmells)
