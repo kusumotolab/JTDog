@@ -80,7 +80,7 @@ public class SniffTask extends DefaultTask {
 
         // 静的解析
         final StaticAnalyzer sa = new StaticAnalyzer(sources, sourcepathDirs, externalJarFilePaths);
-        sa.run(methodList, isJUnit5);
+        sa.run(methodList, isJUnit5, detectStaticSmells);
 
         // classpath にソースファイルのパスを追加
         String testClassesDirPath = "";

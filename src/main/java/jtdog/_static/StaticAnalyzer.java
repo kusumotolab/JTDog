@@ -7,13 +7,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
 import org.eclipse.jdt.core.dom.CompilationUnit;
 import org.eclipse.jdt.core.dom.ITypeBinding;
+import org.eclipse.core.runtime.NullProgressMonitor;
 
 import jtdog.method.InvocationMethod;
 import jtdog.method.MethodIdentifier;
@@ -44,7 +44,8 @@ public class StaticAnalyzer {
      * @param testSmells : list to save the analysis results.
      * @throws IOException
      */
-    public void run(final MethodList methodList, final boolean isJUnit5) throws IOException {
+    public void run(final MethodList methodList, final boolean isJUnit5, final boolean detectStaticSmells)
+            throws IOException {
 
         for (String source : sources) {
             // 解析器の生成
@@ -79,7 +80,9 @@ public class StaticAnalyzer {
         }
 
         // 全クラスの AST を走査後，静的解析で検出できる test smell を検出
-        detectTestSmellsStatically(methodList);
+        if (detectStaticSmells) {
+            detectTestSmellsStatically(methodList);
+        }
     }
 
     /**
