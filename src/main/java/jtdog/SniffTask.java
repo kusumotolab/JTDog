@@ -29,9 +29,13 @@ public class SniffTask extends DefaultTask {
     @Input
     private Project project;
 
+    @Input
     private int junitVersion = 4;
+    @Input
     private int rerunFailure = 10;
+    @Input
     private int runInRandomOrder = 10;
+    @Input
     private boolean detectStaticSmells = false;
 
     @TaskAction
