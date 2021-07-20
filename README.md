@@ -23,7 +23,7 @@ buildscript {
     }
   }
   dependencies {
-    classpath "gradle.plugin.com.github.m-tanigt:jtdog-plugin:1.0.2"
+    classpath "com.github.m-tanigt:jtdog-plugin:1.0.2"
   }
 }
 
