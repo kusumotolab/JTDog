@@ -10,7 +10,7 @@ https://plugins.gradle.org/plugin/com.github.m-tanigt.jtdog
 Using the [plugins DSL](https://docs.gradle.org/current/userguide/plugins.html#sec:plugins_block):
 ```groovy
 plugins {
-    id 'com.github.m-tanigt.jtdog' version 'latestVersion'
+    id 'com.github.m-tanigt.jtdog' version '1.0.1'
 }
 ```
 
@@ -23,7 +23,7 @@ buildscript {
     }
   }
   dependencies {
-    classpath "gradle.plugin.com.github.m-tanigt:jtdog-plugin:latestVersion"
+    classpath "gradle.plugin.com.github.m-tanigt:jtdog-plugin:1.0.1"
   }
 }
 
