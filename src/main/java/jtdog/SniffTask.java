@@ -187,7 +187,7 @@ public class SniffTask extends DefaultTask {
         result.setNumberOfMissedFail(missedFail);
         result.setNumberOfSkip(skip);
 
-        jw.writeJSONFile(result, "out", project.getName() + "_result", !detectStaticSmells);
+        jw.writeJSONFile(result, "out", project.getDisplayName() + "_result", !detectStaticSmells);
     }
 
     private void recursiveDeleteFile(final File file) throws Exception {
