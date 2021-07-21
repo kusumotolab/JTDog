@@ -82,9 +82,11 @@ public class SniffTask extends DefaultTask {
         // System.out.println("dir: "+string);
         // }
 
+        System.out.println("Start static analysis.");
         // 静的解析
         final StaticAnalyzer sa = new StaticAnalyzer(sources, sourcepathDirs, externalJarFilePaths);
         sa.run(methodList, isJUnit5, detectStaticSmells);
+        System.out.println("Done.");
 
         // classpath にソースファイルのパスを追加
         String testClassesDirPath = "";
@@ -122,6 +124,8 @@ public class SniffTask extends DefaultTask {
             projectName = p.getName() + ":" + projectName;
             p = p.getParent();
         }
+
+        System.out.println("Start dynamic analysis.");
 
         da.run(methodList, loader, projectName, isJUnit5, getRerunFailure(), getRunInRandomOrder());
 
@@ -191,7 +195,7 @@ public class SniffTask extends DefaultTask {
         result.setNumberOfMissedFail(missedFail);
         result.setNumberOfSkip(skip);
 
-        jw.writeJSONFile(result, "out", project.getDisplayName() + "_result", !detectStaticSmells);
+        jw.writeJSONFile(result, "out", projectName + "_result", !detectStaticSmells);
     }
 
     private void recursiveDeleteFile(final File file) throws Exception {
