@@ -3,8 +3,6 @@
  */
 package jtdog;
 
-import java.util.Set;
-
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 
@@ -15,14 +13,11 @@ public class JTDogPlugin implements Plugin<Project> {
     public void apply(final Project project) {
         registerTasks(project);
         // Register a task
-        /*Set<Project> subProjects = project.getSubprojects();
-        if (!subProjects.isEmpty()) {
-            // registerTasks(project);
-            // } else {
-            for (Project subProject : subProjects) {
-                registerTasks(subProject);
-            }
-        }*/
+        /*
+         * Set<Project> subProjects = project.getSubprojects(); if
+         * (!subProjects.isEmpty()) { // registerTasks(project); // } else { for
+         * (Project subProject : subProjects) { registerTasks(subProject); } }
+         */
 
     }
 
@@ -37,11 +32,11 @@ public class JTDogPlugin implements Plugin<Project> {
              */
             task.setProject(project);
             task.setDescription("Detects Java test smells.");
-            task.doLast(s -> System.out.println("Done."));
+            task.doLast(s -> System.out
+                    .println("Sniff Task is finished. Please check the JSON file in the out directory."));
         });
 
-        project.getTasks().register("detectDependentTests", DetectDependentTestsTask.class, task ->
-        {
+        project.getTasks().register("detectDependentTests", DetectDependentTestsTask.class, task -> {
             task.setProject(project);
             task.setDescription("Do not use.");
         });

@@ -9,11 +9,11 @@ import jtdog.method.MethodProperty;
 public class TaskResult {
     @JsonProperty("fully_rotten")
     private int numberOfRotten;
-    @JsonProperty("context_dependent")
+    @JsonProperty("rotten_context_dependent")
     private int numberOfContextDependent;
-    @JsonProperty("missed_fail")
+    @JsonProperty("rotten_missed_fail")
     private int numberOfMissedFail;
-    @JsonProperty("skip_test")
+    @JsonProperty("rotten_skip_test")
     private int numberOfSkip;
     @JsonProperty("flaky_test")
     private int numberOfFlaky;

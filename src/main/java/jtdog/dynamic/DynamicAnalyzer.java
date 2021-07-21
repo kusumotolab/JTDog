@@ -62,6 +62,7 @@ public class DynamicAnalyzer {
         // テストクラスのロード
         List<Class<?>> testClasses = loadTestClasses(memoryClassLoader);
 
+        System.out.println("detecting rotten green tests and flaky tests ...");
         if (isJUnit5) {
             JUnit5TestRunner runner = new JUnit5TestRunner(testClassesDirPath, jacocoRuntimeData);
             runner.run(methodList, testClasses, rerunFailure);
@@ -69,6 +70,7 @@ public class DynamicAnalyzer {
             JUnit4TestRunner runner = new JUnit4TestRunner(testClassesDirPath, jacocoRuntimeData);
             runner.run(methodList, testClasses, rerunFailure);
         }
+        System.out.println("Done.");
 
         ObjectSerializer.serializeObject("jtdog_tmp/testClassNamesToExecuted.ser", testClassNamesToExecuted);
 
@@ -111,6 +113,7 @@ public class DynamicAnalyzer {
                 testMethodProperty.addTestSmellType(MethodProperty.DEPENDENT);
             }
         }
+        System.out.println("Done.");
 
         File tmpDirectory = new File("jtdog_tmp");
         recursiveDeleteFile(tmpDirectory);
