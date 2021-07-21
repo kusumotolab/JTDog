@@ -29,9 +29,13 @@ public class SniffTask extends DefaultTask {
     @Input
     private Project project;
 
+    @Input
     private int junitVersion = 4;
+    @Input
     private int rerunFailure = 10;
+    @Input
     private int runInRandomOrder = 10;
+    @Input
     private boolean detectStaticSmells = false;
 
     @TaskAction
@@ -187,7 +191,7 @@ public class SniffTask extends DefaultTask {
         result.setNumberOfMissedFail(missedFail);
         result.setNumberOfSkip(skip);
 
-        jw.writeJSONFile(result, "out", project.getName() + "_result", !detectStaticSmells);
+        jw.writeJSONFile(result, "out", project.getDisplayName() + "_result", !detectStaticSmells);
     }
 
     private void recursiveDeleteFile(final File file) throws Exception {
