@@ -129,7 +129,7 @@ public class SniffTask extends DefaultTask {
 
         System.out.println("Start dynamic analysis.");
 
-        da.run(methodList, loader, projectName, isJUnit5, getRerunFailure(), getRunInRandomOrder());
+        da.run(methodList, loader, projectName, isJUnit5, getRerunsFailure(), getRunsInRandomOrder());
 
         System.out.println("Finish dynamic analysis.");
 
@@ -268,20 +268,20 @@ public class SniffTask extends DefaultTask {
         this.junitVersion = junitVersion;
     }
 
-    public int getRerunFailure() {
-        return rerunFailure;
+    public int getRerunsFailure() {
+        return rerunsFailure;
     }
 
-    public void setRerunFailure(int rerunFailure) {
-        this.rerunFailure = rerunFailure;
+    public void setRerunsFailure(int rerunFailure) {
+        this.rerunsFailure = rerunFailure;
     }
 
-    public int getRunInRandomOrder() {
-        return runInRandomOrder;
+    public int getRunsInRandomOrder() {
+        return runsInRandomOrder;
     }
 
-    public void setRunInRandomOrder(int runInRandomOrder) {
-        this.runInRandomOrder = runInRandomOrder;
+    public void setRunsInRandomOrder(int runInRandomOrder) {
+        this.runsInRandomOrder = runInRandomOrder;
     }
 
     public boolean isDetectStaticSmells() {
