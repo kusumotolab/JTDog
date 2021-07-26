@@ -10,7 +10,7 @@ https://plugins.gradle.org/plugin/com.github.m-tanigt.jtdog
 Using the [plugins DSL](https://docs.gradle.org/current/userguide/plugins.html#sec:plugins_block):
 ```groovy
 plugins {
-    id 'com.github.m-tanigt.jtdog' version '1.0.2'
+    id 'com.github.m-tanigt.jtdog' version '1.0.3'
 }
 ```
 
@@ -23,7 +23,7 @@ buildscript {
     }
   }
   dependencies {
-    classpath "gradle.plugin.com.github.m-tanigt:jtdog-plugin:1.0.2"
+    classpath "gradle.plugin.com.github.m-tanigt:jtdog-plugin:1.0.3"
   }
 }
 
@@ -42,17 +42,19 @@ The detection results are output as a JSON file in the `out` directory.
 ```groovy
 sniff {
   junitVersion = 4
-  rerunFailure = 10
-  runInRondomOrder = 10
+  rerunsFailure = 10
+  runsInRondomOrder = 10
   detectStaticSmells = false
+  outputDirectory = "out"
 }
 ```
 | Property | Type | Description |
 |----------|------|-------------|
 | `junitVersion` | `integer` | The JUnit version you use. Default to `4`. You can use JUnit5 by setting the value of this property to `5`. If you are using JUnit3, set it to `4` (because JUnit4 runner can run JUnit3 test).|
-| `rerunFailure` | `integer` | Number of times to rerun a failed test. Default to `10`.|
-| `runInRondomOrder` | `integer` | Number of times to run tests in random order. Default to `10`.|
+| `rerunsFailure` | `integer` | Number of times to rerun a failed test. Default to `10`.|
+| `runsInRondomOrder` | `integer` | Number of times to run tests in random order. Default to `10`.|
 | `detectStaticSmells` | `boolean` | Whether to detect static test smells. Default to `false`|
+| `outputDirectory` | `String` | Name of the directory to output results. Default to `"out"`|
 
 ## Dynamic Test Smells
 | Name | Description |
