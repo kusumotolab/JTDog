@@ -292,4 +292,12 @@ public class SniffTask extends DefaultTask {
         this.detectStaticSmells = detectStaticSmells;
     }
 
+    public String getOutputDirectory() {
+        return outputDirectory;
+    }
+
+    public void setOutputDirectory(String outputDirectory) {
+        this.outputDirectory = outputDirectory;
+    }
+
 }
