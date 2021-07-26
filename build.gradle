@@ -22,7 +22,7 @@ sourceCompatibility = 11
 targetCompatibility = 11
 
 group 'com.github.m-tanigt'
-version '1.0.2'
+version '1.0.3'
 
 gradlePlugin {
     plugins {
