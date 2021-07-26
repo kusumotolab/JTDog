@@ -32,9 +32,9 @@ public class SniffTask extends DefaultTask {
     @Input
     private int junitVersion = 4;
     @Input
-    private int rerunFailure = 10;
+    private int rerunsFailure = 10;
     @Input
-    private int runInRandomOrder = 10;
+    private int runsInRandomOrder = 10;
     @Input
     private boolean detectStaticSmells = false;
     @Input
