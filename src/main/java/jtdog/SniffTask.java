@@ -37,6 +37,8 @@ public class SniffTask extends DefaultTask {
     private int runInRandomOrder = 10;
     @Input
     private boolean detectStaticSmells = false;
+    @Input
+    private String outputDirectory = "out";
 
     @TaskAction
     void sniffTaskAction() throws Exception {
@@ -129,6 +131,8 @@ public class SniffTask extends DefaultTask {
 
         da.run(methodList, loader, projectName, isJUnit5, getRerunFailure(), getRunInRandomOrder());
 
+        System.out.println("Finish dynamic analysis.");
+
         // generate result JSON file
         final TaskResult result = new TaskResult();
         final JSONWriter jw = new JSONWriter();
@@ -195,7 +199,7 @@ public class SniffTask extends DefaultTask {
         result.setNumberOfMissedFail(missedFail);
         result.setNumberOfSkip(skip);
 
-        jw.writeJSONFile(result, "out", projectName + "_result", !detectStaticSmells);
+        jw.writeJSONFile(result, outputDirectory, projectName + "_result", !detectStaticSmells);
     }
 
     private void recursiveDeleteFile(final File file) throws Exception {
