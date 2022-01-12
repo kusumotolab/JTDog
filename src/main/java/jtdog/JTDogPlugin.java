@@ -40,6 +40,11 @@ public class JTDogPlugin implements Plugin<Project> {
             task.setProject(project);
             task.setDescription("Do not use.");
         });
+
+        project.getTasks().register("detectFlakyTests", DetectFlakyTestsTask.class, task -> {
+            task.setProject(project);
+            task.setDescription("Do not use.");
+        });
     }
 
 }

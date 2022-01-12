@@ -32,7 +32,7 @@ public class SniffTask extends DefaultTask {
     @Input
     private int junitVersion = 4;
     @Input
-    private int rerunFailure = 10;
+    private int rerunTimes = 10;
     @Input
     private int runInRandomOrder = 10;
     @Input
@@ -123,7 +123,7 @@ public class SniffTask extends DefaultTask {
             p = p.getParent();
         }
 
-        da.run(methodList, loader, projectName, isJUnit5, getRerunFailure(), getRunInRandomOrder());
+        da.run(methodList, loader, projectName, isJUnit5, getRerunTimes(), getRunInRandomOrder());
 
         // generate result JSON file
         final TaskResult result = new TaskResult();
@@ -260,12 +260,12 @@ public class SniffTask extends DefaultTask {
         this.junitVersion = junitVersion;
     }
 
-    public int getRerunFailure() {
-        return rerunFailure;
+    public int getRerunTimes() {
+        return rerunTimes;
     }
 
-    public void setRerunFailure(int rerunFailure) {
-        this.rerunFailure = rerunFailure;
+    public void setRerunTimes(int rerunTimes) {
+        this.rerunTimes = rerunTimes;
     }
 
     public int getRunInRandomOrder() {

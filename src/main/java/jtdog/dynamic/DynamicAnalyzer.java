@@ -46,7 +46,7 @@ public class DynamicAnalyzer {
 
     // テスト以外のクラスも instrumenter を適用すべき？
     public void run(final MethodList methodList, final MemoryClassLoader memoryClassLoader, final String projectName,
-            final boolean isJUnit5, final int rerunFailure, final int runInRandomOrder) throws Exception {
+            final boolean isJUnit5, final int rerunTimes, final int runInRandomOrder) throws Exception {
         // テストクラスすべてに instrumenter を適用
         for (String testClassName : testClassNames) {
             try {
@@ -62,28 +62,65 @@ public class DynamicAnalyzer {
         // テストクラスのロード
         List<Class<?>> testClasses = loadTestClasses(memoryClassLoader);
 
-        System.out.println("detecting rotten green tests and flaky tests ...");
+        System.out.println("Detecting rotten green tests ...");
         if (isJUnit5) {
             JUnit5TestRunner runner = new JUnit5TestRunner(testClassesDirPath, jacocoRuntimeData);
-            runner.run(methodList, testClasses, rerunFailure);
+            runner.run(methodList, testClasses);
         } else {
             JUnit4TestRunner runner = new JUnit4TestRunner(testClassesDirPath, jacocoRuntimeData);
-            runner.run(methodList, testClasses, rerunFailure);
+            runner.run(methodList, testClasses);
         }
-        System.out.println("Done.");
+        System.out.println("Rotten green test detection is done.");
+
+        System.out.println("Detecting flaky tests ...");
+        HashSet<String> flakyTests = new HashSet<>();
+        // 通常の順序でテスト実行を繰り返す
+        for (int i = 0; i < rerunTimes; i++) {
+            // System.out.println("loop " + i);
+            List<String> cmd = new ArrayList<String>();
+            cmd.add("./gradlew");
+            // 2回以上ネスとしているサブプロジェクトの場合だめ
+            String taskName = (projectName.equals("")) ? "detectFlakyTests" : projectName + ":detectFlakyTests";
+            cmd.add(taskName);
+            if (isJUnit5) {
+                cmd.add("-Pjtdog.junit5=true");
+            }
+            // cmd.add("--stacktrace");
+
+            Process p = Runtime.getRuntime().exec(cmd.toArray(new String[cmd.size()]));
+            // 出力ストリーム
+            new StreamThread(p.getInputStream(), "OUTPUT").start();
+            // エラーストリーム
+            new StreamThread(p.getErrorStream(), "ERROR").start();
+
+            p.waitFor();
+
+            p.getInputStream().close();
+            p.getOutputStream().close();
+            p.getErrorStream().close();
+
+            p.destroy();
+
+            flakyTests.addAll(deserializeHashMap("jtdog_tmp/flakyTests.ser"));
+        }
+
+        for (String fqn : flakyTests) {
+            MethodProperty testMethodProperty = methodList.getPropertyByName(fqn);
+            testMethodProperty.addTestSmellType(MethodProperty.FLAKY);
+        }
+        System.out.println("Flaky test detection is done.");
 
         ObjectSerializer.serializeObject("jtdog_tmp/testClassNamesToExecuted.ser", testClassNamesToExecuted);
 
         HashSet<String> dependentTests = new HashSet<>();
-
-        System.out.println("detecting dependent tests ...");
+        System.out.println("Detecting dependent tests ...");
         // ランダムな順番でテスト実行を繰り返す
         for (int i = 0; i < runInRandomOrder; i++) {
             // System.out.println("loop " + i);
             List<String> cmd = new ArrayList<String>();
             cmd.add("./gradlew");
             // 2回以上ネスとしているサブプロジェクトの場合だめ
-            String taskName = (projectName.equals("")) ? "detectDependentTest" : projectName + ":detectDependentTest";
+            String taskName = (projectName.equals("")) ? "detectDependentTests" : projectName + ":detectDependentTests";
             cmd.add(taskName);
             if (isJUnit5) {
                 cmd.add("-Pjtdog.junit5=true");
@@ -113,7 +150,7 @@ public class DynamicAnalyzer {
                 testMethodProperty.addTestSmellType(MethodProperty.DEPENDENT);
             }
         }
-        System.out.println("Done.");
+        System.out.println("Dependent test detection is done.");
 
         File tmpDirectory = new File("jtdog_tmp");
         recursiveDeleteFile(tmpDirectory);

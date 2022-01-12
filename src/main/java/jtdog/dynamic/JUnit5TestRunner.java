@@ -1,7 +1,6 @@
 package jtdog.dynamic;
 
 import static org.junit.platform.engine.discovery.DiscoverySelectors.selectClass;
-import static org.junit.platform.engine.discovery.DiscoverySelectors.selectMethod;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -46,7 +45,7 @@ public class JUnit5TestRunner {
         this.jacocoRuntimeData = jacocoRuntimeData;
     }
 
-    public void run(final MethodList methodList, final List<Class<?>> testClasses, final int rerunFailure) throws Exception {
+    public void run(final MethodList methodList, final List<Class<?>> testClasses) throws Exception {
         final HashMap<String, Boolean> testResultsInDefaultOrder = new HashMap<>();
         final HashMap<String, ArrayList<String>> testClassNameToDefaultExecutionOrder = new HashMap<>();
 
@@ -56,7 +55,7 @@ public class JUnit5TestRunner {
         Launcher launcher = LauncherFactory.create();
 
         TestExecutionListener listener = new CoverageMeasurementListener(methodList, testResultsInDefaultOrder,
-                testClassNameToDefaultExecutionOrder, rerunFailure);
+                testClassNameToDefaultExecutionOrder);
         launcher.execute(request, listener);
 
         ObjectSerializer.serializeObject("jtdog_tmp/testResultsInDefaultOrder.ser", testResultsInDefaultOrder);
@@ -76,16 +75,13 @@ public class JUnit5TestRunner {
         private final MethodList methodList;
         private final HashMap<String, Boolean> testResultsInDefaultOrder;
         private final HashMap<String, ArrayList<String>> testClassNameToDefaultExecutionOrder;
-        private final int rerunFailure;
 
         public CoverageMeasurementListener(final MethodList methodList,
                 final HashMap<String, Boolean> testResultsInDefaultOrder,
-                final HashMap<String, ArrayList<String>> testClassNameToDefaultExecutionOrder, 
-                final int rerunFailure) {
+                final HashMap<String, ArrayList<String>> testClassNameToDefaultExecutionOrder) {
             this.methodList = methodList;
             this.testResultsInDefaultOrder = testResultsInDefaultOrder;
             this.testClassNameToDefaultExecutionOrder = testClassNameToDefaultExecutionOrder;
-            this.rerunFailure = rerunFailure;
         }
 
         @Override
@@ -103,7 +99,8 @@ public class JUnit5TestRunner {
             try {
                 MethodSource source = (MethodSource) testIdentifier.getSource().get();
                 String testClassName = source.getClassName();
-                //System.out.println("finish: " + source.getMethodName() + " in " + testClassName);
+                // System.out.println("finish: " + source.getMethodName() + " in " +
+                // testClassName);
                 if (testClassNameToDefaultExecutionOrder.containsKey(testClassName)) {
                     testClassNameToDefaultExecutionOrder.get(testClassName).add(source.getMethodName());
                 } else {
@@ -123,12 +120,9 @@ public class JUnit5TestRunner {
                     }
                 } else if (status == Status.FAILED) {
                     // for debug
-                    //System.out.println("test fail: " + testIdentifier.getDisplayName());
-
+                    // System.out.println("test fail: " + testIdentifier.getDisplayName());
                     property.setWasSuccessful(false);
                     testResultsInDefaultOrder.put(getTestMethodFQN(testIdentifier), false);
-                    // identify flaky test failure
-                    reRun(rerunFailure, source.getJavaClass(), source.getMethodName());
                 }
             } catch (Exception e) {
 
@@ -241,16 +235,6 @@ public class JUnit5TestRunner {
         private MethodProperty getTestMethodProperty(final TestIdentifier testIdentifier) {
             String testMethodName = getTestMethodFQN(testIdentifier);
             return methodList.getPropertyByName(testMethodName);
-        }
-
-        /**
-         * テストメソッド名を基にテストメソッドのプロパティを取得する．
-         * 
-         * @param methodName
-         * @return
-         */
-        private MethodProperty getTestMethodProperty(final String methodName) {
-            return methodList.getPropertyByName(methodName);
         }
 
         /**
@@ -481,50 +465,6 @@ public class JUnit5TestRunner {
             return "";
         }
 
-        private void reRun(int numberOfTimes, Class<?> clazz, String methodName) {
-            Boolean wasSuccessful = Boolean.valueOf(false);
-            Launcher launcher = LauncherFactory.create();
-            LauncherDiscoveryRequest request = LauncherDiscoveryRequestBuilder.request()
-                    .selectors(selectMethod(clazz, methodName))
-                    .configurationParameter("junit.jupiter.extensions.autodetection.enabled", "true").build();
-            TestExecutionListener listener = new reRunListener(wasSuccessful, methodList);
-
-            for (int i = 0; i < numberOfTimes; i++) {
-                launcher.execute(request, listener);
-            }
-        }
-
-    }
-
-    class reRunListener implements TestExecutionListener {
-        Boolean wasSuccessful;
-        MethodList methodList;
-
-        public reRunListener(Boolean wasSuccessful, MethodList methodList) {
-            this.wasSuccessful = wasSuccessful;
-            this.methodList = methodList;
-        }
-
-        @Override
-        public void executionFinished(TestIdentifier testIdentifier, TestExecutionResult testExecutionResult) {
-            // System.out.println("rerun: " + testIdentifier.getDisplayName() + ", " +
-            // testExecutionResult.getStatus());
-            try {
-                if (testExecutionResult.getStatus() == Status.SUCCESSFUL) {
-                    // this test method is flaky
-                    MethodSource source = (MethodSource) testIdentifier.getSource().get();
-                    String testMethodName = source.getClassName() + "." + source.getMethodName();
-                    MethodProperty testMethodProperty = methodList.getPropertyByName(testMethodName);
-                    // System.out.println("flaky");
-                    if (!testMethodProperty.getTestSmellTypes().contains(MethodProperty.FLAKY)) {
-                        testMethodProperty.addTestSmellType(MethodProperty.FLAKY);
-                    }
-                }
-            } catch (Exception e) {
-                // TODO: handle exception
-            }
-            TestExecutionListener.super.executionFinished(testIdentifier, testExecutionResult);
-        }
     }
 
 }

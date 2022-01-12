@@ -18,8 +18,6 @@ import org.jacoco.core.data.SessionInfoStore;
 import org.jacoco.core.runtime.RuntimeData;
 import org.junit.runner.Description;
 import org.junit.runner.JUnitCore;
-import org.junit.runner.Request;
-import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
 
@@ -37,11 +35,12 @@ public class JUnit4TestRunner {
         this.jacocoRuntimeData = jacocoRuntimeData;
     }
 
-    public void run(final MethodList methodList, final List<Class<?>> testClasses, final int rerunFailure) throws Exception {
+    public void run(final MethodList methodList, final List<Class<?>> testClasses)
+            throws Exception {
         // JUnit runner を使用
         final JUnitCore junit = new JUnitCore();
         final HashMap<String, Boolean> testResultsInDefaultOrder = new HashMap<>();
-        final RunListener listener = new CoverageMeasurementListener(methodList, testResultsInDefaultOrder, rerunFailure);
+        final RunListener listener = new CoverageMeasurementListener(methodList, testResultsInDefaultOrder);
         junit.addListener(listener);
         junit.run(testClasses.toArray(new Class<?>[testClasses.size()]));
 
@@ -52,14 +51,12 @@ public class JUnit4TestRunner {
         private final MethodList methodList;
         private boolean isTestSuccessful;
         private HashMap<String, Boolean> testResultsInDefaultOrder;
-        private int rerunFailure;
 
         public CoverageMeasurementListener(final MethodList methodList,
-                final HashMap<String, Boolean> testResultsInDefaultOrder, int rerunFailure) {
+                final HashMap<String, Boolean> testResultsInDefaultOrder) {
             this.methodList = methodList;
             this.testResultsInDefaultOrder = testResultsInDefaultOrder;
             this.isTestSuccessful = true;
-            this.rerunFailure = rerunFailure;
         }
 
         @Override
@@ -78,18 +75,12 @@ public class JUnit4TestRunner {
             Description description = failure.getDescription();
 
             // for debug
-            //System.out.println("test fail: " + failure.getMessage() + " in " + failure.getDescription().getClassName()
-            //        + "." + failure.getDescription().getMethodName());
+            // System.out.println("test fail: " + failure.getMessage() + " in " +
+            // failure.getDescription().getClassName()
+            // + "." + failure.getDescription().getMethodName());
             // System.out.println(failure.getException());
 
             testResultsInDefaultOrder.put(getTestMethodFQN(description), false);
-
-            // identify flaky test failure
-            if (reRun(rerunFailure, description.getTestClass(), description.getMethodName())) {
-                // this test method is flaky
-                MethodProperty testMethodProperty = getTestMethodProperty(description);
-                testMethodProperty.addTestSmellType(MethodProperty.FLAKY);
-            }
 
             // test fail = not rotten
             isTestSuccessful = false;
@@ -105,8 +96,9 @@ public class JUnit4TestRunner {
         @Override
         public void testFinished(final Description description) throws IOException {
             // for debug
-            //System.out.println(
-            //        "finish: " + description.getMethodName() + " in " + description.getTestClass().getCanonicalName());
+            // System.out.println(
+            // "finish: " + description.getMethodName() + " in " +
+            // description.getTestClass().getCanonicalName());
 
             if (isTestSuccessful) {
                 getTestMethodProperty(description).setWasSuccessful(true);
@@ -126,16 +118,6 @@ public class JUnit4TestRunner {
         private MethodProperty getTestMethodProperty(final Description description) {
             String testMethodName = getTestMethodFQN(description);
             return methodList.getPropertyByName(testMethodName);
-        }
-
-        /**
-         * テストメソッド名を基にテストメソッドのプロパティを取得する．
-         * 
-         * @param methodName
-         * @return
-         */
-        private MethodProperty getTestMethodProperty(final String methodName) {
-            return methodList.getPropertyByName(methodName);
         }
 
         /**
@@ -459,16 +441,5 @@ public class JUnit4TestRunner {
             return "";
         }
 
-        private boolean reRun(int numberOfTimes, Class<?> clazz, String methodName) {
-            JUnitCore junit = new JUnitCore();
-            for (int i = 0; i < numberOfTimes; i++) {
-                Result result = junit.run(Request.method(clazz, methodName));
-                if (result.wasSuccessful()) {
-                    // System.out.println("flaky");
-                    return true;
-                }
-            }
-            return false;
-        }
     }
 }
