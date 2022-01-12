@@ -72,11 +72,14 @@ public class DynamicAnalyzer {
         }
         System.out.println("Rotten green test detection is done.");
 
+        // 実行したテストクラス名のリストを一時保存
+        ObjectSerializer.serializeObject("jtdog_tmp/testClassNamesToExecuted.ser", testClassNamesToExecuted);
+
         System.out.println("Detecting flaky tests ...");
         HashSet<String> flakyTests = new HashSet<>();
         // 通常の順序でテスト実行を繰り返す
         for (int i = 0; i < rerunTimes; i++) {
-            // System.out.println("loop " + i);
+            //System.out.println("loop " + i + "start");
             List<String> cmd = new ArrayList<String>();
             cmd.add("./gradlew");
             // 2回以上ネスとしているサブプロジェクトの場合だめ
@@ -109,8 +112,6 @@ public class DynamicAnalyzer {
             testMethodProperty.addTestSmellType(MethodProperty.FLAKY);
         }
         System.out.println("Flaky test detection is done.");
-
-        ObjectSerializer.serializeObject("jtdog_tmp/testClassNamesToExecuted.ser", testClassNamesToExecuted);
 
         HashSet<String> dependentTests = new HashSet<>();
         System.out.println("Detecting dependent tests ...");
