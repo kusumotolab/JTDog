@@ -79,7 +79,7 @@ public class DynamicAnalyzer {
         HashSet<String> flakyTests = new HashSet<>();
         // 通常の順序でテスト実行を繰り返す
         for (int i = 0; i < rerunTimes; i++) {
-            //System.out.println("loop " + i + "start");
+            // System.out.println("loop " + i + "start");
             List<String> cmd = new ArrayList<String>();
             cmd.add("./gradlew");
             // 2回以上ネスとしているサブプロジェクトの場合だめ
@@ -117,7 +117,6 @@ public class DynamicAnalyzer {
         System.out.println("Detecting dependent tests ...");
         // ランダムな順番でテスト実行を繰り返す
         for (int i = 0; i < runInRandomOrder; i++) {
-            // System.out.println("loop " + i);
             List<String> cmd = new ArrayList<String>();
             cmd.add("./gradlew");
             // 2回以上ネスとしているサブプロジェクトの場合だめ
@@ -146,15 +145,20 @@ public class DynamicAnalyzer {
         }
 
         for (String fqn : dependentTests) {
-            MethodProperty testMethodProperty = methodList.getPropertyByName(fqn);
-            if (!testMethodProperty.getTestSmellTypes().contains(MethodProperty.FLAKY)) {
-                testMethodProperty.addTestSmellType(MethodProperty.DEPENDENT);
+            try {
+                MethodProperty testMethodProperty = methodList.getPropertyByName(fqn);
+                if (!testMethodProperty.getTestSmellTypes().contains(MethodProperty.FLAKY)) {
+                    testMethodProperty.addTestSmellType(MethodProperty.DEPENDENT);
+                }
+            } catch (Exception e) {
+                // TODO: handle exception
             }
         }
         System.out.println("Dependent test detection is done.");
 
         File tmpDirectory = new File("jtdog_tmp");
         recursiveDeleteFile(tmpDirectory);
+        System.out.println("Done.");
 
     }
 

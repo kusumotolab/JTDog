@@ -34,9 +34,11 @@ public class SniffTask extends DefaultTask {
     @Input
     private int rerunTimes = 10;
     @Input
-    private int runInRandomOrder = 10;
+    private int runsInRandomOrder = 10;
     @Input
     private boolean detectStaticSmells = false;
+    @Input
+    private String outputDirectory = "out";
 
     @TaskAction
     void sniffTaskAction() throws Exception {
@@ -82,9 +84,11 @@ public class SniffTask extends DefaultTask {
         // System.out.println("dir: "+string);
         // }
 
+        System.out.println("Start static analysis.");
         // 静的解析
         final StaticAnalyzer sa = new StaticAnalyzer(sources, sourcepathDirs, externalJarFilePaths);
         sa.run(methodList, isJUnit5, detectStaticSmells);
+        System.out.println("Done.");
 
         // classpath にソースファイルのパスを追加
         String testClassesDirPath = "";
@@ -123,7 +127,11 @@ public class SniffTask extends DefaultTask {
             p = p.getParent();
         }
 
-        da.run(methodList, loader, projectName, isJUnit5, getRerunTimes(), getRunInRandomOrder());
+        System.out.println("Start dynamic analysis.");
+
+        da.run(methodList, loader, projectName, isJUnit5, getRerunTimes(), getRunsInRandomOrder());
+
+        System.out.println("Done.");
 
         // generate result JSON file
         final TaskResult result = new TaskResult();
@@ -191,7 +199,7 @@ public class SniffTask extends DefaultTask {
         result.setNumberOfMissedFail(missedFail);
         result.setNumberOfSkip(skip);
 
-        jw.writeJSONFile(result, "out", project.getDisplayName() + "_result", !detectStaticSmells);
+        jw.writeJSONFile(result, outputDirectory, projectName + "_result", !detectStaticSmells);
     }
 
     private void recursiveDeleteFile(final File file) throws Exception {
@@ -268,12 +276,12 @@ public class SniffTask extends DefaultTask {
         this.rerunTimes = rerunTimes;
     }
 
-    public int getRunInRandomOrder() {
-        return runInRandomOrder;
+    public int getRunsInRandomOrder() {
+        return runsInRandomOrder;
     }
 
-    public void setRunInRandomOrder(int runInRandomOrder) {
-        this.runInRandomOrder = runInRandomOrder;
+    public void setRunsInRandomOrder(int runInRandomOrder) {
+        this.runsInRandomOrder = runInRandomOrder;
     }
 
     public boolean isDetectStaticSmells() {
@@ -282,6 +290,14 @@ public class SniffTask extends DefaultTask {
 
     public void setDetectStaticSmells(boolean detectStaticSmells) {
         this.detectStaticSmells = detectStaticSmells;
+    }
+
+    public String getOutputDirectory() {
+        return outputDirectory;
+    }
+
+    public void setOutputDirectory(String outputDirectory) {
+        this.outputDirectory = outputDirectory;
     }
 
 }
