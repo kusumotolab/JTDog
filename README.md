@@ -43,7 +43,7 @@ The detection results are output as a JSON file in the `out` directory.
 sniff {
   junitVersion = 4
   rerunTimes = 10
-  runsInRondomOrder = 10
+  runsInRandomOrder = 10
   detectStaticSmells = false
   outputDirectory = "out"
 }
@@ -52,7 +52,7 @@ sniff {
 |----------|------|-------------|
 | `junitVersion` | `integer` | The JUnit version you use. Default to `4`. You can use JUnit5 by setting the value of this property to `5`. If you are using JUnit3, set it to `4` (because JUnit4 runner can run JUnit3 test).|
 | `rerunTimes` | `integer` | Number of times to rerun tests. Default to `10`.|
-| `runsInRondomOrder` | `integer` | Number of times to run tests in random order. Default to `10`.|
+| `runsInRandomOrder` | `integer` | Number of times to run tests in random order. Default to `10`.|
 | `detectStaticSmells` | `boolean` | Whether to detect static test smells. Default to `false`|
 | `outputDirectory` | `String` | Name of the directory to output results. Default to `"out"`|
 
